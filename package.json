@@ -1,0 +1,21 @@
+{
+  "name": "kunlun-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "让 AI 通过昆仑智联开放平台替你处理文档等办公操作",
+  "bin": {
+    "kunlun": "./src/main.ts"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "test": "node --test \"src/**/*.test.ts\""
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^7.0.2"
+  }
+}

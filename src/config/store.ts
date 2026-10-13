@@ -1,0 +1,134 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { homedir } from "node:os"
+import path from "node:path"
+import { CliError } from "../errors.ts"
+
+export interface Config {
+  appId: string
+  openBaseUrl: string
+  accountsBaseUrl: string
+  redirectUrl: string
+  webBaseUrl: string
+}
+
+export const defaultConfig: Config = {
+  appId: "",
+  openBaseUrl: "https://open.fklzl.cnpc.com.cn",
+  accountsBaseUrl: "https://accounts.fklzl.cnpc.com.cn",
+  redirectUrl: "http://127.0.0.1:19876/callback",
+  webBaseUrl: "",
+}
+
+export function configDir(env: NodeJS.ProcessEnv = process.env): string {
+  return env.KUNLUN_CONFIG_DIR || path.join(homedir(), ".kunlun-cli")
+}
+
+export function readConfigFile(dir: string): Partial<Config> {
+  const file = path.join(dir, "config.json")
+  if (!existsSync(file)) return {}
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(readFileSync(file, "utf8"))
+  } catch {
+    throw new CliError("config", "config.json 无法解析", file)
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new CliError("config", "config.json 格式不正确", file)
+  }
+  const raw = parsed as Record<string, unknown>
+  const result: Partial<Config> = {}
+  if (typeof raw.appId === "string") result.appId = raw.appId
+  if (typeof raw.openBaseUrl === "string") result.openBaseUrl = raw.openBaseUrl
+  if (typeof raw.accountsBaseUrl === "string") result.accountsBaseUrl = raw.accountsBaseUrl
+  if (typeof raw.redirectUrl === "string") result.redirectUrl = raw.redirectUrl
+  if (typeof raw.webBaseUrl === "string") result.webBaseUrl = raw.webBaseUrl
+  return result
+}
+
+export function loadEffectiveConfig(dir: string, env: NodeJS.ProcessEnv = process.env): Config {
+  const file = readConfigFile(dir)
+  const merged: Config = {
+    appId: env.KUNLUN_APP_ID || file.appId || defaultConfig.appId,
+    openBaseUrl: env.KUNLUN_OPEN_BASE_URL || file.openBaseUrl || defaultConfig.openBaseUrl,
+    accountsBaseUrl: env.KUNLUN_ACCOUNTS_BASE_URL || file.accountsBaseUrl || defaultConfig.accountsBaseUrl,
+    redirectUrl: env.KUNLUN_REDIRECT_URL || file.redirectUrl || defaultConfig.redirectUrl,
+    webBaseUrl: env.KUNLUN_WEB_BASE_URL ?? file.webBaseUrl ?? defaultConfig.webBaseUrl,
+  }
+  return normalizeConfig(merged)
+}
+
+export function saveConfig(dir: string, config: Config): void {
+  const normalized = normalizeConfig(config)
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(path.join(dir, "config.json"), `${JSON.stringify(normalized, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  })
+}
+
+export function loadSecret(dir: string, env: NodeJS.ProcessEnv = process.env): string {
+  const fromEnv = env.KUNLUN_APP_SECRET?.trim()
+  if (fromEnv) return fromEnv
+  const file = path.join(dir, "app-secret")
+  if (!existsSync(file)) return ""
+  return readFileSync(file, "utf8").trim()
+}
+
+export function saveSecret(dir: string, secret: string): void {
+  const trimmed = secret.trim()
+  if (!trimmed) throw new CliError("config", "App Secret 不能为空")
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(path.join(dir, "app-secret"), trimmed, { encoding: "utf8", mode: 0o600 })
+}
+
+export function secretSource(dir: string, env: NodeJS.ProcessEnv = process.env): "env" | "file" | "missing" {
+  if (env.KUNLUN_APP_SECRET?.trim()) return "env"
+  if (existsSync(path.join(dir, "app-secret"))) return "file"
+  return "missing"
+}
+
+export function normalizeConfig(config: Config): Config {
+  return {
+    appId: config.appId.trim(),
+    openBaseUrl: httpsOrigin(config.openBaseUrl, "open_base_url"),
+    accountsBaseUrl: httpsOrigin(config.accountsBaseUrl, "accounts_base_url"),
+    redirectUrl: loopbackRedirect(config.redirectUrl),
+    webBaseUrl: config.webBaseUrl.trim() ? httpsOrigin(config.webBaseUrl, "web_base_url") : "",
+  }
+}
+
+export function httpsOrigin(raw: string, name: string): string {
+  let url: URL
+  try {
+    url = new URL(raw.trim())
+  } catch {
+    throw new CliError("config", `${name} 不是合法 URL`)
+  }
+  if (url.protocol !== "https:") throw new CliError("config", `${name} 必须使用 https`)
+  if (url.username || url.password || url.search || url.hash) {
+    throw new CliError("config", `${name} 只能是源站地址`)
+  }
+  if (url.pathname !== "/" && url.pathname !== "") {
+    throw new CliError("config", `${name} 不能带路径`)
+  }
+  return url.origin
+}
+
+export function loopbackRedirect(raw: string): string {
+  let url: URL
+  try {
+    url = new URL(raw.trim())
+  } catch {
+    throw new CliError("config", "redirect_url 不是合法 URL")
+  }
+  if (url.protocol !== "http:") throw new CliError("config", "redirect_url 必须是 http，供本机接收授权回调")
+  if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") {
+    throw new CliError("config", "redirect_url 必须指向 127.0.0.1 或 localhost")
+  }
+  if (!url.port) throw new CliError("config", "redirect_url 必须带端口，例如 http://127.0.0.1:19876/callback")
+  if (url.username || url.password || url.search || url.hash) {
+    throw new CliError("config", "redirect_url 不能包含账号、查询参数或片段")
+  }
+  return url.toString()
+}
+
