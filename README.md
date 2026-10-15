@@ -81,6 +81,19 @@ node src/main.ts api POST /open-apis/docx/v1/documents --data "{\"title\":\"草�
 
 路径必须是开放平台相对路径，客户端只会把它发到配置中的 `open_base_url`。
 
+## 给 Cursor Agent 用
+
+本仓库在 [`.cursor/skills/`](.cursor/skills/) 提供 Skill，用法对齐飞书 `lark-cli` + `lark-*` skill：
+
+| Skill | 作用 |
+| --- | --- |
+| `kunlun-shared` | 配置、登录、身份、`api` 兜底、JSON 契约 |
+| `kunlun-doc` | `docs create / append / read` |
+
+在 Cursor 中打开本项目时，Agent 会自动发现项目 Skill。若只在其他目录聊天，可将 `.cursor/skills/kunlun-shared` 与 `kunlun-doc` 复制到个人 Skill 目录（例如 `~/.cursor/skills/`）。
+
+架构说明见 [ARCHITECTURE.md](ARCHITECTURE.md)。
+
 ## 测试
 
 ```powershell
