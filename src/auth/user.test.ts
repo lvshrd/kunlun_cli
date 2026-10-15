@@ -15,14 +15,14 @@ const config: Config = {
 
 test("授权链接只带昆仑私有化接受的字段", () => {
   const url = new URL(buildAuthorizeUrl(config, "state-1"))
-  assert.equal(url.origin, "https://open.example.com")
-  assert.equal(url.pathname, "/open-apis/authen/v1/index")
-  assert.equal(url.searchParams.get("app_id"), "cli_test")
+  assert.equal(url.origin, "https://accounts.example.com")
+  assert.equal(url.pathname, "/open-apis/authen/v1/authorize")
+  assert.equal(url.searchParams.get("client_id"), "cli_test")
   assert.equal(url.searchParams.get("redirect_uri"), config.redirectUrl)
+  assert.equal(url.searchParams.get("response_type"), "code")
   assert.equal(url.searchParams.get("state"), "state-1")
-  assert.equal(url.searchParams.get("client_id"), null)
+  assert.equal(url.searchParams.get("app_id"), null)
   assert.equal(url.searchParams.get("scope"), null)
-  assert.equal(url.searchParams.get("response_type"), null)
 })
 
 test("拒绝 state 不一致的回调", () => {

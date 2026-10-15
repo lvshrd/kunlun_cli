@@ -3,7 +3,7 @@ import { CliError } from "../errors.ts"
 import type { OpenApi } from "../client/http.ts"
 import type { Config } from "../config/store.ts"
 import { isRecord, num, str } from "../json.ts"
-import { openBrowser } from "./browser.ts"
+import { openBrowser, shouldOpenBrowser } from "./browser.ts"
 import { requestAppAccessToken } from "./tenant.ts"
 import { buildAuthorizeUrl, refreshTokenPath, userInfoPath, userTokenPath } from "./endpoints.ts"
 import {
@@ -66,14 +66,20 @@ export async function getUserToken(dir: string, api: OpenApi, config: Config, se
   return next.accessToken
 }
 
-export async function loginUser(dir: string, api: OpenApi, config: Config, secret: string): Promise<UserSession> {
+export async function loginUser(
+  dir: string,
+  api: OpenApi,
+  config: Config,
+  secret: string,
+  options: { openBrowser?: boolean } = {},
+): Promise<UserSession> {
   if (!config.appId || !secret) {
     throw new CliError("config", "尚未配置应用", "运行 kunlun config init --app-id <App ID> --app-secret-stdin")
   }
   const redirect = new URL(config.redirectUrl)
   const state = newState()
   const authorizeUrl = buildAuthorizeUrl(config, state)
-  const code = await waitForCode(redirect, state, authorizeUrl)
+  const code = await waitForCode(redirect, state, authorizeUrl, options.openBrowser !== false)
   const bundle = await exchangeAuthorizationCode(api, config, secret, code)
   const profile = await readProfile(api, bundle.accessToken)
   const session = sessionFromBundle(bundle, profile.name, profile.openId)
@@ -126,7 +132,7 @@ function sessionFromBundle(bundle: TokenBundle, name: string, openId: string): U
   }
 }
 
-function waitForCode(redirect: URL, state: string, authorizeUrl: string): Promise<string> {
+function waitForCode(redirect: URL, state: string, authorizeUrl: string, autoOpenBrowser: boolean): Promise<string> {
   return new Promise((resolve, reject) => {
     const server = createServer((request, response) => {
       try {
@@ -160,7 +166,14 @@ function waitForCode(redirect: URL, state: string, authorizeUrl: string): Promis
       console.error("请在浏览器中完成昆仑智联授权。")
       console.error("如果浏览器没有自动打开，请访问：")
       console.error(authorizeUrl)
-      openBrowser(authorizeUrl)
+      if (shouldOpenBrowser(autoOpenBrowser)) {
+        const opened = openBrowser(authorizeUrl)
+        if (!opened) {
+          console.error("[kunlun] 未能自动打开浏览器，请手动复制上面的链接。")
+        }
+      } else {
+        console.error("[kunlun] 已跳过自动打开浏览器（--no-browser、KUNLUN_NO_BROWSER=1 或 SSH 环境）。")
+      }
     })
   })
 }

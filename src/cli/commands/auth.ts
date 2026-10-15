@@ -3,7 +3,7 @@ import { printOk } from "../../output/envelope.ts"
 import { clearUserSession, loadUserSession, publicUser } from "../../auth/session.ts"
 import { loginUser } from "../../auth/user.ts"
 import { requireApp } from "../../runtime.ts"
-import { strFlag } from "../args.ts"
+import { boolFlag, strFlag } from "../args.ts"
 import type { Invocation, Route } from "../route.ts"
 
 export function authRoutes(): Route[] {
@@ -20,7 +20,9 @@ async function login(invocation: Invocation): Promise<void> {
     throw new CliError("usage", "昆仑智联的登录地址不支持 --scope", "直接运行 kunlun auth login。文档权限使用应用里已经开通的 docx:document。")
   }
   const app = requireApp()
-  const session = await loginUser(app.dir, app.client, app.config, app.secret)
+  const session = await loginUser(app.dir, app.client, app.config, app.secret, {
+    openBrowser: !boolFlag(invocation.flags, "no-browser"),
+  })
   printOk(publicUser(session))
 }
 

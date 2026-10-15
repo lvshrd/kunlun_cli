@@ -21,7 +21,9 @@ npm install
 node src/main.ts auth login
 ```
 
-`auth login` 会打开昆仑智联授权页，不要附加 `--scope`。授权地址只携带 `app_id`、`redirect_uri` 和 `state`。授权完成后，本机保存用户登录态。
+`auth login` 会打开昆仑智联授权页，不要附加 `--scope`。授权地址使用 `client_id`、`response_type=code`、`redirect_uri` 和 `state`。若未自动弹出浏览器，把终端里**整行完整 URL** 复制到浏览器（不能只复制到第一个 `&` 之前）。远程登录可加 `--no-browser`，只打印链接。授权完成后，本机保存用户登录态。
+
+自动打开浏览器按操作系统调用系统 API（Windows 用 `rundll32`，macOS 用 `open`，Linux 用 `xdg-open`），与日常办公在本机跑 CLI 的方式一致；无图形界面的服务器请用 `--no-browser` 或设置 `KUNLUN_NO_BROWSER=1`。
 
 ```powershell
 node src/main.ts auth status
