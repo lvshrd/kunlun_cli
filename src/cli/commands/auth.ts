@@ -16,12 +16,10 @@ export function authRoutes(): Route[] {
 
 async function login(invocation: Invocation): Promise<void> {
   if (invocation.rest.length > 0) throw new CliError("usage", "auth login 不接受额外参数")
-  if (strFlag(invocation.flags, "scope")) {
-    throw new CliError("usage", "昆仑智联的登录地址不支持 --scope", "直接运行 kunlun auth login。文档权限使用应用里已经开通的 docx:document。")
-  }
   const app = requireApp()
   const session = await loginUser(app.dir, app.client, app.config, app.secret, {
     openBrowser: !boolFlag(invocation.flags, "no-browser"),
+    scope: strFlag(invocation.flags, "scope"),
   })
   printOk(publicUser(session))
 }

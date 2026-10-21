@@ -71,14 +71,14 @@ export async function loginUser(
   api: OpenApi,
   config: Config,
   secret: string,
-  options: { openBrowser?: boolean } = {},
+  options: { openBrowser?: boolean; scope?: string } = {},
 ): Promise<UserSession> {
   if (!config.appId || !secret) {
     throw new CliError("config", "尚未配置应用", "运行 kunlun config init --app-id <App ID> --app-secret-stdin")
   }
   const redirect = new URL(config.redirectUrl)
   const state = newState()
-  const authorizeUrl = buildAuthorizeUrl(config, state)
+  const authorizeUrl = buildAuthorizeUrl(config, state, options.scope)
   const code = await waitForCode(redirect, state, authorizeUrl, options.openBrowser !== false)
   const bundle = await exchangeAuthorizationCode(api, config, secret, code)
   const profile = await readProfile(api, bundle.accessToken)

@@ -37,8 +37,8 @@ npm start -- <子命令> ...
 | --- | --- |
 | 首次配置应用 | `config init --app-id <id> --app-secret-stdin`（Secret 从 stdin） |
 | 查看配置 | `config show` |
-| 浏览器登录 | `auth login`（**不要**加 `--scope`） |
-| 无图形界面 | `auth login --no-browser`，把终端**整行**授权 URL 复制到浏览器 |
+| 文档读写授权 | `auth login --scope "docx:document"`（后台需开通用户身份权限） |
+| 无图形界面 | `auth login --scope "docx:document" --no-browser`，把终端**整行**授权 URL 复制到浏览器 |
 | 登录态 | `auth status` / `auth logout` |
 | 环境自检 | `doctor` |
 

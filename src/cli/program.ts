@@ -43,7 +43,7 @@ export function formatHelp(routes: Route[]): string {
     "",
     "示例：",
     "  node src/main.ts config init --app-id cli_xxx --app-secret-stdin",
-    "  node src/main.ts auth login",
+    "  node src/main.ts auth login --scope docx:document",
     "  node src/main.ts docs create --title 周报 --file .\\周报.md",
     "  node src/main.ts docs read --document <document_id>",
     "",

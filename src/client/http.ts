@@ -48,7 +48,7 @@ export class KunlunClient implements OpenApi {
     const parsed = parseBody(text)
     const failure = failureOf(response.status, parsed)
     if (failure) {
-      throw new CliError("api", failure, undefined, {
+      throw new CliError("api", failure, permissionHint(parsed), {
         http_status: response.status,
         path: url.pathname,
         upstream: parsed ?? text.slice(0, 500),
@@ -70,6 +70,26 @@ export class KunlunClient implements OpenApi {
     }
     return url
   }
+}
+
+function permissionHint(body: unknown): string | undefined {
+  if (!isRecord(body)) return undefined
+  if (body.code === 99991679) {
+    const error = isRecord(body.error) ? body.error : {}
+    const violations = Array.isArray(error.permission_violations) ? error.permission_violations : []
+    const scopes = [...new Set(violations
+      .filter((item) => isRecord(item) && item.type === "action_privilege_required")
+      .map((item) => isRecord(item) ? str(item.subject) : undefined)
+      .filter((scope): scope is string => Boolean(scope && /^[a-zA-Z0-9_:.-]+$/.test(scope))))]
+    const next = scopes[0]
+      ? `例如 kunlun auth login --scope "${scopes[0]}"（具体权限组合以接口文档为准）`
+      : '运行 kunlun auth login --scope "<接口所需权限>"'
+    return `用户尚未授予接口所需权限。先确认应用后台已开通相应的「用户身份权限」并已生效，再在浏览器补充授权；${next}。刷新 token 不会自动增加授权范围。`
+  }
+  if (body.code === 99991672) {
+    return "应用缺少接口权限。请在昆仑开发者后台检查当前调用身份对应的权限，并确认权限已生效；需审核的权限须发布版本并审核通过。用户身份调用还需通过 auth login --scope 补充用户授权。"
+  }
+  return undefined
 }
 
 function parseBody(text: string): unknown {

@@ -13,7 +13,7 @@ const config: Config = {
   webBaseUrl: "",
 }
 
-test("授权链接只带昆仑私有化接受的字段", () => {
+test("基础登录不请求额外业务权限", () => {
   const url = new URL(buildAuthorizeUrl(config, "state-1"))
   assert.equal(url.origin, "https://accounts.example.com")
   assert.equal(url.pathname, "/open-apis/authen/v1/authorize")
@@ -23,6 +23,21 @@ test("授权链接只带昆仑私有化接受的字段", () => {
   assert.equal(url.searchParams.get("state"), "state-1")
   assert.equal(url.searchParams.get("app_id"), null)
   assert.equal(url.searchParams.get("scope"), null)
+})
+
+test("文档授权链接保留并编码业务权限，去重且规范空白", () => {
+  const url = new URL(buildAuthorizeUrl(config, "state-1", "  docx:document\n docx:document  drive:drive:readonly "))
+  assert.equal(url.searchParams.get("scope"), "docx:document drive:drive:readonly")
+  assert.equal(url.searchParams.get("redirect_uri"), config.redirectUrl)
+  assert.equal(url.searchParams.get("state"), "state-1")
+  assert.equal(new URL(buildAuthorizeUrl(config, "s", "  ")).searchParams.get("scope"), null)
+})
+
+test("拒绝超过授权页上限的权限数量", () => {
+  assert.throws(
+    () => buildAuthorizeUrl(config, "s", Array.from({ length: 51 }, (_, i) => `test:scope${i}`).join(" ")),
+    (err: unknown) => err instanceof CliError && err.type === "usage",
+  )
 })
 
 test("拒绝 state 不一致的回调", () => {
@@ -39,4 +54,5 @@ test("解析换票响应", () => {
   })
   assert.equal(bundle.accessToken, "u-1")
   assert.equal(bundle.expiresIn, 10)
+  assert.equal(bundle.scope, "docx:document")
 })

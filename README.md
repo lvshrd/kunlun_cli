@@ -8,7 +8,7 @@
 
 1. 安装 Node.js 22.18 或更高版本。当前开发环境是 Node.js 24。
 2. 在 [昆仑智联开放平台](https://open.fklzl.cnpc.com.cn/document/home/index) 创建自建应用。
-3. 开通云文档读写权限。权限名称以昆仑文档为准，常见项是文档的创建与编辑。
+3. 在权限管理中开通**用户身份权限** `docx:document`（文档创建与编辑），并确认已生效。应用身份权限与用户身份权限分开申请；仅开通应用身份权限不能让用户 token 获得相同权限。
 4. 把 `http://127.0.0.1:19876/callback` 填进应用的重定向 URL。
 
 ## 配置和登录
@@ -18,10 +18,14 @@
 ```powershell
 npm install
 "你的AppSecret" | node src/main.ts config init --app-id cli_xxx --app-secret-stdin
-node src/main.ts auth login
+node src/main.ts auth login --scope "docx:document"
 ```
 
-`auth login` 会打开昆仑智联授权页，不要附加 `--scope`。授权地址使用 `client_id`、`response_type=code`、`redirect_uri` 和 `state`。若未自动弹出浏览器，把终端里**整行完整 URL** 复制到浏览器（不能只复制到第一个 `&` 之前）。远程登录可加 `--no-browser`，只打印链接。授权完成后，本机保存用户登录态。
+`auth login --scope "docx:document"` 会打开昆仑智联授权页，请求用户授予文档读写权限。多个 scope 用空格分隔，最多 50 个。不加 `--scope` 仍可做基础登录，但不能据此认为已获得文档权限。若未自动弹出浏览器，把终端里**整行完整 URL** 复制到浏览器（不能只复制到第一个 `&` 之前）。远程登录可加 `--no-browser`。授权完成后，本机保存用户登录态。
+
+应用后台开通权限和用户同意授权是两步：新增权限后，需要带上对应 `--scope` 再登录；自动刷新旧 token 不会扩大授权范围。以昆仑官方[获取授权码](https://open.fklzl.cnpc.com.cn/document/common-capabilities/sso/api/obtain-oauth-code)和[申请 API 权限](https://open.fklzl.cnpc.com.cn/document/ukTMukTMukTM/uQjN3QjL0YzN04CN2cDN)说明为准。
+
+若调用返回 `99991679`，表示用户尚未授予接口所需权限，按错误中的 `hint` 补充授权。若授权页报 `20027`，检查该 App ID 下相应的**用户身份权限**是否已开通并生效，需审核的权限还需发布版本并通过审核。`doctor` 只检查连通性和登录态，不验证文档读写权限。
 
 自动打开浏览器按操作系统调用系统 API（Windows 用 `rundll32`，macOS 用 `open`，Linux 用 `xdg-open`），与日常办公在本机跑 CLI 的方式一致；无图形界面的服务器请用 `--no-browser` 或设置 `KUNLUN_NO_BROWSER=1`。
 
