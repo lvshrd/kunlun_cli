@@ -5,6 +5,7 @@ import { authRoutes } from "./commands/auth.ts"
 import { configRoutes } from "./commands/config.ts"
 import { doctorRoutes } from "./commands/doctor.ts"
 import { docsRoutes } from "./commands/docs.ts"
+import { skillsRoutes } from "./commands/skills.ts"
 import type { Route } from "./route.ts"
 
 export function allRoutes(): Route[] {
@@ -14,6 +15,7 @@ export function allRoutes(): Route[] {
     ...doctorRoutes(),
     ...apiRoutes(),
     ...docsRoutes(),
+    ...skillsRoutes(),
     {
       path: ["version"],
       summary: "显示版本",

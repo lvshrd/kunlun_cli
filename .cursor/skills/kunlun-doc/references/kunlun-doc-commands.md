@@ -1,71 +1,21 @@
-# docs 命令参考
+# 文档命令参考
 
-## 正文输入（三选一）
+安装后用 `kunlun`，源码开发才用 `node src/main.ts`。长正文使用 UTF-8 文件，`--file`、`--content`、`--stdin` 只能选一个。
 
-| 方式 | 说明 |
+| 任务 | 命令 |
 | --- | --- |
-| `--file <path>` | 推荐；文件 UTF-8 |
-| `--content "<短文本>"` | 仅短句 |
-| `--stdin` | 从标准输入读全文 |
-| （都不传） | 空正文，仅创建标题（create）或无追加块（append） |
+| 本地模板 | `kunlun docs template --output ./草稿.md`，不覆盖已有文件 |
+| 创建预览 | `kunlun docs create --title "标题" --file ./草稿.md --dry-run` |
+| 创建 | 上述命令去掉 --dry-run |
+| 读取 | `kunlun docs read --document <ID或docx链接>` |
+| 追加 | `kunlun docs append --document <ID> --file ./补充.md`，支持 --dry-run |
+| 精确修改预览 | `kunlun docs edit --document <ID> --find "原文" --replace "新文" --dry-run` |
+| 执行修改 | 去掉 --dry-run，并传入预览返回的 `--revision <版本>` |
 
-`--content`、`--file`、`--stdin` **只能选一个**。
+创建和追加的预览只处理本地正文，不能证明权限可用。修改预览会读取云端定位文本，但不写入；修改执行用文档版本限制并发冲突。
 
-## Markdown 支持（写入时）
+编辑要求在单个纯文本 run 的普通段落或一至三级标题内唯一匹配，不能跨 run，不支持空替换或批量替换。无法完整读取时拒绝编辑。修改后读回核对；网络错误不盲目重试。
 
-当前解析支持：
+文档输入应为实际 docx ID / 链接，wiki 链接未解析。创建默认归属本人；分享仍由资源权限决定。
 
-```markdown
-# 一级标题
-## 二级标题
-### 三级标题
-
-普通段落
-```
-
-更复杂结构（列表、代码块、表格等）可能无法正确映射为块；需要时先用 `docs read` 验证，或通过 `api` 调块 API。
-
-## docs create
-
-```powershell
-node src/main.ts docs create --title "项目周报" --file .\周报.md --dry-run
-node src/main.ts docs create --title "项目周报" --file .\周报.md
-node src/main.ts docs create --title "草稿" --as bot --content "一段说明"
-```
-
-可选：`--folder <folder_token>` 指定目录（需 API/权限支持）。
-
-成功 `data` 常见字段：
-
-- `document_id`
-- `title`
-- `block_count`
-- `url`（配置了 `web_base_url` 时）
-
-若创建成功但写入失败，错误 `data` 可能仍含 `document_id`，应向用户说明文档已创建但需补写。
-
-## docs append
-
-```powershell
-node src/main.ts docs append --document <document_id> --file .\补充.md
-node src/main.ts docs append --document "https://域名/docx/xxx" --dry-run --content "追加一段"
-```
-
-## docs read
-
-```powershell
-node src/main.ts docs read --document <document_id>
-```
-
-成功时 `data.markdown` 为 CLI 将块反序列化后的 Markdown 文本；`data.block_count` 为遍历到的块数量。
-
-## 与 OpenAPI 的关系
-
-`docs *` 在内部组合调用 docx 文档与块相关接口（创建文档、分页拉块、批量创建子块等）。Agent **应优先使用 `docs` 命令**，而不是手写块路径，除非用户明确要求块级操作。
-
-未封装接口示例（需 [`kunlun-shared`](../../kunlun-shared/SKILL.md) 中的 `api` 与 token）：
-
-```powershell
-node src/main.ts api GET /open-apis/docx/v1/documents/<document_id>
-node src/main.ts api GET /open-apis/docx/v1/documents/<document_id>/blocks
-```
+写入格式支持三级标题和普通段落。复杂表格、代码块、列表和截图尚未实现，读取也不保真；原有 read 命令最多 20 页，超长文档可能不完整。搜索、删除、移动、重命名尚无快捷命令。

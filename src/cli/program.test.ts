@@ -18,6 +18,17 @@ test("帮助里包含文档命令", () => {
   assert.match(help, /docs create/)
 })
 
+test("安装后的标准版本参数与子命令帮助可用", async () => {
+  const versionOutput = await capture(() => run(["--version"]))
+  assert.equal(versionOutput.code, 0)
+  assert.equal(typeof JSON.parse(versionOutput.stdout).data.version, "string")
+  const help = await capture(() => run(["auth", "--help"]))
+  assert.equal(help.code, 0)
+  assert.match(help.stdout, /auth login/)
+  assert.doesNotMatch(help.stdout, /^\s+docs create\s+/m)
+  assert.doesNotMatch(help.stdout, /node src\/main\.ts/)
+})
+
 test("创建文档的预览不访问网络", async () => {
   const output = await capture(() => run(["docs", "create", "--title", "周报", "--content", "# 进展\n完成登录", "--dry-run"]))
   assert.equal(output.code, 0)

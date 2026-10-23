@@ -1,7 +1,7 @@
 import { CliError } from "../errors.ts"
 import type { Flags } from "./route.ts"
 
-const BOOLEAN_FLAGS = new Set(["stdin", "dry-run", "app-secret-stdin", "help", "no-browser"])
+const BOOLEAN_FLAGS = new Set(["stdin", "dry-run", "app-secret-stdin", "help", "version", "no-browser", "force"])
 
 export interface ParsedArgs {
   positionals: string[]

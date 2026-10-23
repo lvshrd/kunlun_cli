@@ -1,44 +1,26 @@
 ---
 name: kunlun-doc
-description: "昆仑智联云文档（Docx）：用 kunlun-cli 创建、追加、读取文档；Markdown 标题与段落写入块 API。用户提供 document_id 或含 /docx/ 的链接时使用。认证与 JSON 契约见 kunlun-shared。"
-metadata:
-  requires:
-    bins: ["node"]
-    skills: ["kunlun-shared"]
-  cliHelp: "node src/main.ts docs create --help"
+description: "用户要用自然语言在本人昆仑智联云空间创建、读取、追加或修改文档时使用，也适用于昆仑 docx 链接或文档 ID。通过本机 kunlun CLI 执行，不用于飞书公有云；不承诺未实现的搜索、移动或删除。"
 ---
 
-# kunlun 云文档
+# 用自然语言完成昆仑文档任务
 
-## 何时使用
+先遵循 [kunlun-shared](../kunlun-shared/SKILL.md) 检查默认应用及本人登录。不要把一长串 CLI 命令交给用户自行执行；由你调用终端，用户只处理必要的浏览器授权和不明确的业务选择。
 
-- 用户要在昆仑智联**创建**云文档并写入正文
-- **追加**已有文档内容
-- **读取**文档为 Markdown 摘要或全文
-- 用户提供昆仑 docx 链接或 `document_id`
+## 从需求到动作
 
-执行前若未确认登录与配置，先按 [`kunlun-shared`](../kunlun-shared/SKILL.md) 运行 `auth status` 或 `doctor`；仅在失败时再走 `auth login`。
+- 创建：把用户提供的资料整理成 UTF-8 Markdown 草稿，再用 `docs create --title ... --file ... --dry-run` 预览，随后按授权创建，读回核对并返回 ID / 可用链接。
+- 读取：用 `docs read --document <docx链接或ID>`，再根据用户问题总结。当前返回的是支持范围内的文本，不是复杂文档保真导出。
+- 追加：读原文确认目标，用 `docs append --file ...` 添加已授权的内容，再读回验证。
+- 修改：读原文，使用 `docs edit --document ... --find <精确原文> --replace <新文> --dry-run` 预览；执行时携带预览返回的 `--revision`。版本变化、匹配不唯一或复杂富文本时停止修改，重新定位，不做猜测替换。
+- 没有链接或 ID 时向用户确认目标；当前尚无按名称搜索整个云空间的命令。不要用重新创建整篇文档代替未获授权的原文修改。
 
-## 命令路由
+参数与格式边界见[命令参考](references/kunlun-doc-commands.md)。正文目前支持三级标题与普通段落；唯一文本修改保留所修改文本段的样式，不支持跨多个文本 run 或复杂块。
 
-| 意图 | 命令 |
-| --- | --- |
-| 新建文档 + 正文 | `docs create --title <标题> [--file <utf8.md>] [--content "..."]` |
-| 预览块数量 | 上述命令加 `--dry-run` |
-| 追加正文 | `docs append --document <id或url> [--file ...]` |
-| 读回 Markdown | `docs read --document <id或url>` |
+## 执行原则
 
-`--document` 接受文档 ID，或 URL 路径中含 `/docx/<document_id>` 的链接。
+默认用户身份。明确的创建、追加、修改请求就是对应范围的操作授权；用户要求“先给我看”时，给出预览后等用户确认再写入。避免重复要求已给出的同一授权。
 
-详细参数与 Markdown 支持范围 → [`kunlun-doc-commands.md`](references/kunlun-doc-commands.md)
+失败返回 document_id 时保留该 ID，先读回确认已有内容再恢复。完成后说明实际修改、读回核对结果和仍存在的限制，不将单元测试当作云端实测。
 
-## 身份与风险
-
-- 默认 **`--as user`**，文档落在用户云空间。
-- **`--as bot`**：文档归属应用，不一定出现在用户「我的空间」。
-- **创建/追加**会修改云端数据：先确认标题、路径与正文来源；可用 `--dry-run` 查看将生成的块数量。
-- 长正文优先 **`--file`**（UTF-8），不要用 `--content` 传大段中文（Windows 终端编码不稳定）。
-
-## 未覆盖的能力
-
-块级精细编辑、图片、评论、知识库节点、云空间文件管理：暂用 `kunlun-shared` 中的 `api` 子命令调用 OpenAPI，或等待后续 `kunlun-doc` 扩展。不要假设飞书 `lark-cli docs +update` 命令在 kunlun 上存在。
+删除、移动、重命名、截图、完整表格和复杂章节编辑未实现；清楚说明限制，不伪造命令。

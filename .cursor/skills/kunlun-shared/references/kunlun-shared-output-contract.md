@@ -1,6 +1,6 @@
 # JSON 输出契约
 
-kunlun-cli **始终**向 **stdout** 写入一行 JSON（pretty-print，带缩进），无论成功或失败。调试栈信息仅在 `KUNLUN_DEBUG=1` 时可能出现在 stderr。
+kunlun-cli 的普通业务命令及 `version` / `--version` 向 **stdout** 写入一个带缩进的 JSON 对象，无论成功或失败。帮助输出文本；登录提示和授权 URL 输出到 stderr，调试栈信息在 `KUNLUN_DEBUG=1` 时也可能出现在 stderr。JSON 跨多行，脚本应整体解析 stdout，不能按单行 JSON 处理。
 
 ## 成功（退出码 0）
 

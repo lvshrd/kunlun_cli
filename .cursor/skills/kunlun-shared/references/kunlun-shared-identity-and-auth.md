@@ -1,54 +1,28 @@
-# 身份与认证
+# 身份、应用配置与授权
 
-## 两种身份
+默认文档身份是 user；bot 代表应用，不用于替代本人空间访问。
 
-| 身份 | Flag | Token | 典型用途 |
-| --- | --- | --- | --- |
-| 用户 | 默认，或 `--as user` | `user_access_token`（浏览器授权后本机保存） | 我的云文档、个人可见资源 |
-| 应用 | `--as bot` | `tenant_access_token`（app_id + secret 自动换取） | 应用名义、应用可见资源 |
+## 应用来源
 
-办公场景（读/写「我的文档」）**默认 user**。只有用户明确说「用应用身份」或资源属于应用时再 `--as bot`。
+配置优先级：环境变量 > 本机文件 > 昆仑端点默认值。统一 0.1.0 包不含任何默认 App ID、Secret 或用户登录态。用 `kunlun config show` 查看 App ID 和 secret_source，不展示实际 Secret。
 
-## 应用配置
+- 本人终端执行 `kunlun config init`，输入 App ID，隐藏输入 Secret。
+- 脚本使用 `config init --app-id ... --app-secret-stdin`；不使用 --app-secret 参数。
+- 更换应用时清除本机旧用户 / bot session；有多个应用时用独立配置目录。
 
-1. 在 [昆仑智联开放平台](https://open.fklzl.cnpc.com.cn/document/home/index) 创建自建应用。
-2. 重定向 URL 包含 CLI 使用的地址（默认 `http://127.0.0.1:19876/callback`），与 `config show` 中 `redirect_url` 一致。
-3. 按调用身份开通业务权限。用户文档读写需要「用户身份权限」`docx:document`；应用身份权限单独开通。需审核的权限须发布版本并审核通过。
+每个系统用户默认使用 `~/.kunlun-cli`；需要多应用隔离时使用 `KUNLUN_CONFIG_DIR`。
 
-```powershell
-"你的AppSecret" | node src/main.ts config init --app-id cli_xxx --app-secret-stdin
-node src/main.ts config show
-```
-
-可选：配置 `web_base_url` 以便结果里返回文档链接：
+## 本人授权
 
 ```powershell
-"你的AppSecret" | node src/main.ts config init --app-id cli_xxx --web-base-url https://你的网页域名 --app-secret-stdin
+kunlun auth login --scope "docx:document"
+kunlun auth status
 ```
 
-## 用户登录
+多个 scope 空格分隔，最多 50 个。登录后应为本人，scope 包含 docx:document。后台开通业务权限后仍需要用户同意，刷新旧 token 不自动扩大授权。
 
-```powershell
-node src/main.ts auth login --scope "docx:document"
-node src/main.ts auth status
-```
+`99991679`：补充用户授权；`20027`：维护者检查用户身份权限是否已开通生效；账号不能使用应用时检查可用范围。`doctor` 只提供连通性及登录概况，不是文档写入验收。
 
-- 使用 `--scope` 请求业务权限，多个权限用空格分隔（最多 50 个）。只读文档可以请求 `docx:document:readonly`，创建和编辑需要 `docx:document`。
-- 不带 `--scope` 只做基础登录；新增业务权限后需带 scope 重新授权，刷新旧 token 不会自动扩大权限。
-- 远程或无浏览器：`auth login --scope "docx:document" --no-browser`，复制终端输出的**完整**授权 URL。
-- 环境变量 `KUNLUN_NO_BROWSER=1` 等同不自动打开浏览器。
+`--no-browser` 只跳过自动打开浏览器，回调仍必须到运行 CLI 的电脑。复制完整 URL，不能在 & 处截断。
 
-## 自检
-
-```powershell
-node src/main.ts doctor
-```
-
-检查 open 域、accounts 授权页、应用凭证能否换 bot token、用户 session 摘要（不含 token）。
-
-## 权限不足时
-
-- 错误 `type` 常为 `api` 或 `auth`，`hint` 可能提示重新登录或去开发者后台开通权限。
-- `99991679` 表示用户未授权对应权限，确认后台「用户身份权限」已生效后，运行带相应 `--scope` 的登录命令。
-- 授权页 `20027` 表示请求的 scope 未在应用开通，先检查用户身份权限与发布审核状态。
-- 不要建议用户使用飞书 App 扫公有云二维码或 `lark-cli auth login`。
+仅换工作目录不会切换配置。独立试用需同时隔离程序 prefix 和 KUNLUN_CONFIG_DIR；Agent 也必须继承对应环境。
