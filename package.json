@@ -5,11 +5,23 @@
   "type": "module",
   "description": "让 AI 通过昆仑智联开放平台替你处理文档等办公操作",
   "bin": {
-    "kunlun": "./src/main.ts"
+    "kunlun": "./dist/main.js"
   },
+  "files": [
+    "dist/**/*.js",
+    "docs/*.md",
+    ".cursor/skills/**/*.md",
+    "ARCHITECTURE.md",
+    "可行性分析与开发计划.md"
+  ],
   "scripts": {
     "start": "node src/main.ts",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\"",
+    "check": "tsc --noEmit",
+    "build": "node scripts/build.mjs",
+    "prepack": "npm run build",
+    "package": "node scripts/package.mjs",
+    "test:package": "node scripts/test-package.mjs"
   },
   "engines": {
     "node": ">=22.18"
