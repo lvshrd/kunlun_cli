@@ -1,17 +1,17 @@
-import { readFileSync } from "node:fs"
+import { readFileSync, existsSync, rmSync } from "node:fs"
+import path from "node:path"
 import { CliError } from "../../errors.ts"
 import { printOk } from "../../output/envelope.ts"
 import {
   configDir,
-  defaultConfig,
   loadEffectiveConfig,
-  readConfigFile,
   saveConfig,
   saveSecret,
   secretSource,
   type Config,
 } from "../../config/store.ts"
 import { boolFlag, strFlag } from "../args.ts"
+import { promptValue } from "../prompt.ts"
 import type { Invocation, Route } from "../route.ts"
 
 export function configRoutes(): Route[] {
@@ -23,19 +23,23 @@ export function configRoutes(): Route[] {
 
 async function initConfig(invocation: Invocation): Promise<void> {
   if (invocation.rest.length > 0) throw new CliError("usage", "config init 不接受额外参数")
-  const appId = strFlag(invocation.flags, "app-id")
-  if (!appId) throw new CliError("usage", "缺少 --app-id")
-  if (!boolFlag(invocation.flags, "app-secret-stdin")) {
-    throw new CliError(
-      "usage",
-      "请用 --app-secret-stdin 从标准输入读取 App Secret",
-      "在 PowerShell 中：'密钥' | node src/main.ts config init --app-id cli_xxx --app-secret-stdin",
-    )
-  }
-  const secret = readFileSync(0, "utf8").trim()
-  if (!secret) throw new CliError("config", "没有从标准输入读到 App Secret")
   const dir = configDir()
-  const current = { ...defaultConfig, ...readConfigFile(dir) }
+  const current = loadEffectiveConfig(dir)
+  if (invocation.flags["app-secret"] !== undefined) throw new CliError("usage", "不要通过命令行参数传入 Secret", "使用交互式 config init，或 --app-secret-stdin")
+  const fromStdin = boolFlag(invocation.flags, "app-secret-stdin")
+  let appId = strFlag(invocation.flags, "app-id")
+  let secret: string
+  if (fromStdin) {
+    if (!appId) throw new CliError("usage", "--app-secret-stdin 需要同时指定 --app-id")
+    secret = readFileSync(0, "utf8").trim()
+  } else {
+    if (!process.stdin.isTTY) throw new CliError("usage", "交互配置需要终端", "脚本使用 config init --app-id <ID> --app-secret-stdin")
+    console.error("昆仑智联应用配置：依次输入 App ID 和 App Secret，按回车继续；Ctrl+C 取消。")
+    appId ??= await promptValue(`请输入 App ID${current.appId ? ` [回车沿用 ${current.appId}]` : ""}: `) || current.appId
+    if (!appId) throw new CliError("usage", "App ID 不能为空")
+    secret = await promptValue("请输入 App Secret（输入不回显，粘贴后按回车）: ", true)
+  }
+  if (!secret) throw new CliError("config", "App Secret 不能为空，未保存")
   const next: Config = {
     appId,
     openBaseUrl: strFlag(invocation.flags, "open-base-url") || current.openBaseUrl,
@@ -45,6 +49,13 @@ async function initConfig(invocation: Invocation): Promise<void> {
   }
   saveConfig(dir, next)
   saveSecret(dir, secret)
+  // 更换应用或开放平台时不能复用旧应用的用户与 bot 凭证。
+  if (current.appId !== next.appId || current.openBaseUrl !== next.openBaseUrl || current.accountsBaseUrl !== next.accountsBaseUrl) {
+    for (const name of ["user-session.json", "bot-token.json"]) {
+      const file = path.join(dir, name)
+      if (existsSync(file)) rmSync(file)
+    }
+  }
   printOk({
     config_dir: dir,
     app_id: appId,

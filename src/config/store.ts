@@ -47,12 +47,13 @@ export function readConfigFile(dir: string): Partial<Config> {
 
 export function loadEffectiveConfig(dir: string, env: NodeJS.ProcessEnv = process.env): Config {
   const file = readConfigFile(dir)
+  const defaults = defaultConfig
   const merged: Config = {
-    appId: env.KUNLUN_APP_ID || file.appId || defaultConfig.appId,
-    openBaseUrl: env.KUNLUN_OPEN_BASE_URL || file.openBaseUrl || defaultConfig.openBaseUrl,
-    accountsBaseUrl: env.KUNLUN_ACCOUNTS_BASE_URL || file.accountsBaseUrl || defaultConfig.accountsBaseUrl,
-    redirectUrl: env.KUNLUN_REDIRECT_URL || file.redirectUrl || defaultConfig.redirectUrl,
-    webBaseUrl: env.KUNLUN_WEB_BASE_URL ?? file.webBaseUrl ?? defaultConfig.webBaseUrl,
+    appId: env.KUNLUN_APP_ID || file.appId || defaults.appId,
+    openBaseUrl: env.KUNLUN_OPEN_BASE_URL || file.openBaseUrl || defaults.openBaseUrl,
+    accountsBaseUrl: env.KUNLUN_ACCOUNTS_BASE_URL || file.accountsBaseUrl || defaults.accountsBaseUrl,
+    redirectUrl: env.KUNLUN_REDIRECT_URL || file.redirectUrl || defaults.redirectUrl,
+    webBaseUrl: env.KUNLUN_WEB_BASE_URL ?? file.webBaseUrl ?? defaults.webBaseUrl,
   }
   return normalizeConfig(merged)
 }
@@ -70,8 +71,8 @@ export function loadSecret(dir: string, env: NodeJS.ProcessEnv = process.env): s
   const fromEnv = env.KUNLUN_APP_SECRET?.trim()
   if (fromEnv) return fromEnv
   const file = path.join(dir, "app-secret")
-  if (!existsSync(file)) return ""
-  return readFileSync(file, "utf8").trim()
+  if (existsSync(file)) return readFileSync(file, "utf8").trim()
+  return ""
 }
 
 export function saveSecret(dir: string, secret: string): void {

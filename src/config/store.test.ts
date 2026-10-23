@@ -36,3 +36,18 @@ test("拒绝非回环重定向地址", async () => {
     await rm(dir, { recursive: true, force: true })
   }
 })
+
+test("全新配置没有默认应用或密钥，显式配置后才可用", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "kunlun-fresh-"))
+  try {
+    assert.equal(loadEffectiveConfig(dir, {}).appId, "")
+    assert.equal(loadSecret(dir, {}), "")
+    saveConfig(dir, { ...sample, appId: "cli_custom" })
+    saveSecret(dir, "custom-secret")
+    assert.equal(loadEffectiveConfig(dir, {}).appId, "cli_custom")
+    assert.equal(loadSecret(dir, {}), "custom-secret")
+    assert.equal(loadSecret(dir, { KUNLUN_APP_SECRET: "env-secret" }), "env-secret")
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})

@@ -74,7 +74,7 @@ export async function loginUser(
   options: { openBrowser?: boolean; scope?: string } = {},
 ): Promise<UserSession> {
   if (!config.appId || !secret) {
-    throw new CliError("config", "尚未配置应用", "运行 kunlun config init --app-id <App ID> --app-secret-stdin")
+    throw new CliError("config", "尚未配置应用", "运行 kunlun config init")
   }
   const redirect = new URL(config.redirectUrl)
   const state = newState()
