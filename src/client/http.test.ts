@@ -25,13 +25,29 @@ test("用户缺少文档授权时给出补充授权命令，保留上游诊断�
     () => client.call({ method: "GET", path: "/open-apis/docx/v1/documents/probe", token: "secret-token" }),
     (err: unknown) => {
       assert.ok(err instanceof CliError)
-      assert.match(err.hint ?? "", /auth login --scope "docx:document"/)
+      assert.match(err.hint ?? "", /kunlun auth login/)
+      assert.doesNotMatch(err.hint ?? "", /--scope/)
       assert.match(err.hint ?? "", /用户身份权限/)
       assert.deepEqual(err.data, { http_status: 400, path: "/open-apis/docx/v1/documents/probe", upstream })
       assert.doesNotMatch(JSON.stringify(err), /secret-token/)
       return true
     },
   )
+})
+
+test("未知或缺失的权限诊断不生成重新登录或临时追加 scope 的命令", async () => {
+  for (const subjects of [["im:message"], [], ["bad&scope=im:message"]]) {
+    const client = new KunlunClient("https://open.example.com", async () => new Response(JSON.stringify({
+      code: 99991679,
+      error: { permission_violations: subjects.map((subject) => ({ subject, type: "action_privilege_required" })) },
+    })))
+    await assert.rejects(() => client.call({ method: "GET", path: "/open-apis/drive/probe" }), (err: unknown) => {
+      assert.ok(err instanceof CliError)
+      assert.match(err.hint ?? "", /kunlun auth scopes/)
+      assert.doesNotMatch(err.hint ?? "", /auth login|--scope/)
+      return true
+    })
+  }
 })
 
 test("应用缺少权限与用户未授权给出不同提示", async () => {

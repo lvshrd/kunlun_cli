@@ -6,7 +6,7 @@
 
 1. 安装程序：安装统一 tgz，只影响程序位置。
 2. 配置应用：`kunlun config init` 在终端输入 App ID 和 Secret，Secret 隐藏输入；配置属于本机系统用户。
-3. 本人授权：`kunlun auth login --scope "docx:document"`，每人用本人浏览器账号完成。
+3. 本人授权：`kunlun auth login` 按当前版本固定权限请求，每人用本人浏览器账号完成。
 4. 接入 Skill：让 Agent 发现 `kunlun-shared` 和 `kunlun-doc`，日常用自然语言。
 
 Lark CLI 官方快速开始也将[应用配置与用户登录](https://github.com/larksuite/cli/blob/main/README.zh.md#配置与使用)分开；公有云自动建应用流程不是昆仑 CLI 当前支持的流程。
@@ -15,7 +15,9 @@ Lark CLI 官方快速开始也将[应用配置与用户登录](https://github.co
 
 ## 应用准备与脚本配置
 
-维护“小惠”可用范围，开通并使用户身份权限 docx:document 生效，登记回调 `http://127.0.0.1:19876/callback`。向成员提供批准使用的应用资料，不复制维护者的用户登录态。
+维护“小惠”可用范围，开通并使 `kunlun auth scopes` 列出的四项用户身份权限生效，登记回调 `http://127.0.0.1:19876/callback`。向成员提供批准使用的应用资料，不复制维护者的用户登录态。
+
+权限集合在 `src/auth/scopes.ts` 中随版本维护，`auth scopes` 不查询后台。新增权限先在后台生效并实测授权与对应接口，再更新集合、封装和 Skill，递增版本后分发。成员升级后重新运行 `auth login`；旧 token 刷新不会自动获得新权限。当前 `--scope` 仅兼容选择集合内的非空子集，不能用参数或环境变量扩充集合。
 
 人直接运行 `kunlun.cmd config init`。脚本可用 stdin，不能用 Secret 命令参数：
 

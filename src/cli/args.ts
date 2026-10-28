@@ -25,6 +25,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     const name = eq === -1 ? token.slice(2) : token.slice(2, eq)
     const inline = eq === -1 ? undefined : token.slice(eq + 1)
     if (!name) throw new CliError("usage", "参数名不能为空")
+    if (Object.hasOwn(flags, name)) throw new CliError("usage", `参数 --${name} 不能重复`, "多个 scope 放在同一个 --scope 值中，用空格分隔。")
     if (BOOLEAN_FLAGS.has(name)) {
       if (inline !== undefined && inline !== "true" && inline !== "false") {
         throw new CliError("usage", `--${name} 是开关，不能赋值 ${inline}`)

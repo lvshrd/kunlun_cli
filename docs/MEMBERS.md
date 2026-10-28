@@ -11,7 +11,7 @@ npm install -g .\kunlun-cli-0.1.0.tgz --offline --ignore-scripts --no-audit --no
 kunlun.cmd config init
 ```
 
-向维护者领取批准使用的应用资料。在终端按提示输入 App ID 和 Secret，Secret 不回显。不要将 Secret 发到 Agent 对话中。维护者需将你加入“小惠”可用范围，并使用户身份权限 docx:document 生效。
+向维护者领取批准使用的应用资料。在终端按提示输入 App ID 和 Secret，Secret 不回显。不要将 Secret 发到 Agent 对话中。维护者需将你加入“小惠”可用范围，并使当前 CLI 版本所需的用户身份权限生效。
 
 在实际使用的 Cursor 项目目录中安装 Skill，然后重开 Agent 对话：
 
@@ -25,7 +25,7 @@ kunlun.cmd skills install --dir .cursor/skills
 
 > 使用 kunlun-doc，帮我登录“小惠”。然后把下面的巡检流程整理成操作文档，创建到我的昆仑智联云空间，读回核对并给我文档 ID 和可用 URL。
 
-Agent 会引导本人浏览器授权；你负责确认账号并同意。以后可以说：
+Agent 会直接使用 `auth login` 请求版本固定权限，引导本人浏览器授权；你负责确认账号并同意，无需选择或补写 scope。以后可以说：
 
 - 读取这篇文档，帮我总结注意事项：〈docx 链接〉。
 - 给这篇文档末尾补充今天的变更说明：〈内容〉。
@@ -39,4 +39,4 @@ Agent 会引导本人浏览器授权；你负责确认账号并同意。以后�
 
 同一安装包供所有人使用，更新程序保留本机配置。不同工作目录默认共用 `~/.kunlun-cli`。退出使用 `kunlun.cmd auth logout`；卸载程序不会清除全部凭证或云端文档。
 
-反馈版本、发生时间和脱敏错误即可，不发送密钥或 token。应用配置问题联系维护者，权限错误可让 Agent 引导重新授权。
+反馈版本、发生时间和脱敏错误即可，不发送密钥或 token。应用配置或版本范围外的权限需求联系维护者；新增权限随新版分发，升级后按提示重新授权。授权失败时提供页面错误，不反复追加 scope 重试。

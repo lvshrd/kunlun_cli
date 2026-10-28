@@ -21,7 +21,8 @@ powershell -NoExit -ExecutionPolicy Bypass -File .\.kunlun-sandbox\start.ps1
 ```powershell
 kunlun.cmd config init
 kunlun.cmd config show
-kunlun.cmd auth login --scope "docx:document"
+kunlun.cmd auth scopes
+kunlun.cmd auth login
 kunlun.cmd auth status
 kunlun.cmd skills install --dir .cursor/skills
 kunlun.cmd docs template --output .\试用草稿.md

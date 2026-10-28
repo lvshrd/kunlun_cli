@@ -47,6 +47,18 @@ try {
   steps.push("从源码目录外通过 npm 生成的命令入口运行帮助和版本")
   assert.equal(ok(["config", "show"]).app_id, "")
   assert.equal(ok(["config", "show"]).secret_source, "missing")
+  const scopes = ok(["auth", "scopes"])
+  assert.equal(scopes.version, manifest.version)
+  assert.deepEqual(scopes.default_scopes, ["docx:document", "drive:drive.metadata:readonly", "drive:drive:readonly", "space:document:retrieve"])
+  assert.deepEqual(scopes.allowed_scopes, scopes.default_scopes)
+  // 无配置也应先拒绝非法授权参数，不能进入浏览器等待或返回缺凭证错误。
+  for (const args of [["--scope", "im:message"], ["--scope="], ["--scpoe", "docx:document"]]) {
+    const refusedAuth = invoke(["auth", "login", ...args])
+    assert.equal(refusedAuth.status, 1)
+    assert.equal(JSON.parse(refusedAuth.stdout).error.type, "usage")
+    assert.equal(refusedAuth.stderr, "")
+  }
+  steps.push("固定权限目录可离线查询，未知或空 scope 与拼错参数在授权前退出")
   const needsTerminal = invoke(["config", "init"])
   assert.notEqual(needsTerminal.status, 0)
   assert.match(JSON.parse(needsTerminal.stdout).error.message, /需要终端/)

@@ -10,10 +10,12 @@
 npm install -g .\kunlun-cli-0.1.0.tgz --offline --ignore-scripts --no-audit --no-fund
 kunlun.cmd config init
 kunlun.cmd skills install --dir .cursor/skills
-kunlun.cmd auth login --scope "docx:document"
+kunlun.cmd auth login
 ```
 
 `config init` 交互输入 App ID，隐藏输入 Secret；不把 Secret 放在命令参数中。Skill 应安装到实际 Agent 的发现目录，Cursor 示例为项目内的 `.cursor/skills`。
+
+`auth login` 默认请求当前版本固定的四项业务权限；`auth scopes` 可离线查看清单。Agent 无需拼接 scope。新增权限由维护者验证后随新版发布，用户升级后重新授权。
 
 重开 Agent 对话后说：“使用 kunlun-doc，将这份草稿写入我的昆仑云空间，读回核对并给我文档 ID 和可用链接。”
 

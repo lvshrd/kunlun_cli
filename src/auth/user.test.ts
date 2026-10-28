@@ -13,7 +13,7 @@ const config: Config = {
   webBaseUrl: "",
 }
 
-test("基础登录不请求额外业务权限", () => {
+test("默认登录请求本版本固定的四项业务权限", () => {
   const url = new URL(buildAuthorizeUrl(config, "state-1"))
   assert.equal(url.origin, "https://accounts.example.com")
   assert.equal(url.pathname, "/open-apis/authen/v1/authorize")
@@ -22,7 +22,7 @@ test("基础登录不请求额外业务权限", () => {
   assert.equal(url.searchParams.get("response_type"), "code")
   assert.equal(url.searchParams.get("state"), "state-1")
   assert.equal(url.searchParams.get("app_id"), null)
-  assert.equal(url.searchParams.get("scope"), null)
+  assert.equal(url.searchParams.get("scope"), "docx:document drive:drive.metadata:readonly drive:drive:readonly space:document:retrieve")
 })
 
 test("文档授权链接保留并编码业务权限，去重且规范空白", () => {
@@ -30,14 +30,16 @@ test("文档授权链接保留并编码业务权限，去重且规范空白", ()
   assert.equal(url.searchParams.get("scope"), "docx:document drive:drive:readonly")
   assert.equal(url.searchParams.get("redirect_uri"), config.redirectUrl)
   assert.equal(url.searchParams.get("state"), "state-1")
-  assert.equal(new URL(buildAuthorizeUrl(config, "s", "  ")).searchParams.get("scope"), null)
 })
 
-test("拒绝超过授权页上限的权限数量", () => {
-  assert.throws(
-    () => buildAuthorizeUrl(config, "s", Array.from({ length: 51 }, (_, i) => `test:scope${i}`).join(" ")),
-    (err: unknown) => err instanceof CliError && err.type === "usage",
-  )
+test("拒绝空 scope、未知权限、通配符、逗号分隔及有效无效混合输入", () => {
+  for (const scope of ["", "  ", "*", "all", "docx:document:readonly", "im:message", "docx:document im:message", "docx:document,drive:drive:readonly", "docx:document&scope=im:message"]) {
+    assert.throws(
+      () => buildAuthorizeUrl(config, "s", scope),
+      (err: unknown) => err instanceof CliError && err.type === "usage",
+      scope,
+    )
+  }
 })
 
 test("拒绝 state 不一致的回调", () => {
