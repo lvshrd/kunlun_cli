@@ -14,6 +14,15 @@ mkdirSync(work)
 const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith("KUNLUN_")))
 env.KUNLUN_CONFIG_DIR = path.join(temporary, "配置")
 env.npm_config_cache = path.join(temporary, "npm-cache")
+// Reproduce coexistence with an older installation without relying on this PC.
+const oldBin = path.join(temporary, "旧安装目录")
+const oldShim = "@echo off\r\nexit /b 42\r\n"
+if (process.platform === "win32") {
+  mkdirSync(oldBin)
+  writeFileSync(path.join(oldBin, "kunlun.cmd"), oldShim)
+  const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") ?? "Path"
+  env[pathKey] = oldBin + ";" + (env[pathKey] ?? "")
+}
 const steps = []
 
 function invoke(args, input) {
@@ -144,13 +153,14 @@ try {
     assert.equal(existsSync(obsolete), false, "覆盖安装应移除旧包残留")
     protectedFiles.forEach((file, index) => assert.equal(readFileSync(path.join(env.KUNLUN_CONFIG_DIR, file), "utf8"), before[index]))
     assert.equal(userPath(), beforeUserPath, "隔离验收不能修改真实用户 PATH")
+    assert.equal(readFileSync(path.join(oldBin, "kunlun.cmd"), "utf8"), oldShim, "保留其他 PATH 目录中的旧安装")
     const commandEnv = Object.fromEntries(Object.entries(env).filter(([key]) => key.toLowerCase() !== "path"))
     commandEnv.Path = prefix + ";" + (Object.entries(env).find(([key]) => key.toLowerCase() === "path")?.[1] ?? "")
     const global = spawnSync("cmd.exe", ["/d", "/c", "kunlun --version"], { cwd: work, env: commandEnv, encoding: "utf8", timeout: 30_000, windowsHide: true })
     assert.ifError(global.error)
     assert.equal(global.status, 0, global.stderr)
     assert.equal(JSON.parse(global.stdout).data.version, manifest.version)
-    steps.push("Windows 安装器校验哈希、同版本覆盖更新、清理旧包文件；配置和登录态不变，CMD 从 PATH 执行成功")
+    steps.push("Windows 安装器校验哈希、同版本覆盖更新、清理旧包文件；多个 PATH 安装共存时验证首个命令，保留旧安装、配置和登录态，CMD 从 PATH 执行成功")
   }
   ok(["config", "init", "--app-id", "cli_other", "--app-secret-stdin"], "other-test-secret\n")
   assert.equal(ok(["config", "show"]).app_id, "cli_other")

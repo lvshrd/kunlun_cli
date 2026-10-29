@@ -24,8 +24,8 @@ try {
     finally { $archiveStream.Dispose(); $hashAlgorithm.Dispose() }
     if ($actualHash -ne $checksum) { throw 'Package checksum mismatch. Installation stopped.' }
 
-    $node = (Get-Command node.exe -ErrorAction Stop).Source
-    $npm = (Get-Command npm.cmd -ErrorAction Stop).Source
+    $node = (Get-Command node.exe -ErrorAction Stop | Select-Object -First 1).Source
+    $npm = (Get-Command npm.cmd -ErrorAction Stop | Select-Object -First 1).Source
     $nodeVersion = [version]((& $node --version).TrimStart('v'))
     if ($nodeVersion -lt [version]'22.18.0') { throw 'Node.js 22.18 or later is required.' }
     $target = [IO.Path]::GetFullPath($InstallDir).TrimEnd('\', '/')
@@ -79,7 +79,9 @@ namespace KunlunInstaller {
     }
 
     $env:Path = $target + ';' + $env:Path
-    $resolvedCommand = (Get-Command kunlun.cmd -CommandType Application -ErrorAction Stop).Source
+    # With an explicit extension PowerShell can return every matching application.
+    # Validate the first PATH match, rather than comparing an array with one path.
+    $resolvedCommand = (Get-Command kunlun.cmd -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     if ($resolvedCommand -ine $command) { throw "Unexpected command on PATH: $resolvedCommand" }
     [ordered]@{
         ok = $true
