@@ -40,7 +40,13 @@ npm run test:package
 npm run package
 ```
 
-交付 `release/kunlun-cli-0.1.0.tgz`、同名 `.sha256` 和 `使用说明.md`。包已编译，无运行时 npm 依赖，安装可以离线完成；云端操作仍需办公网络。保留 private: true，未发布到公共 npm。
+交付 `release/kunlun-cli-0.1.0.tgz`、同名 `.sha256`、`release.json`、`install.cmd`、`install.ps1` 和 `使用说明.md`，保持这些文件在同一目录。包已编译，无运行时 npm 依赖，安装可以离线完成；云端操作仍需办公网络。保留 private: true，未发布到公共 npm。
+
+Windows 安装及升级都运行 `install.cmd`。脚本先检查 SHA-256 和 Node.js 版本，再使用显式 npm prefix 安装到 `%LOCALAPPDATA%\kunlun-cli`；不改变 npm 全局配置。安装成功后保留原有用户 PATH 并去重添加安装目录，发送环境变更通知。安装脚本不读取或修改应用密钥及 session。首次安装需重启终端和 Agent 应用，使其继承新 PATH；其他位置的旧同名安装可能优先解析，可用 `where.exe kunlun` 检查。
+
+本机开发迭代直接执行 `npm run install:local`，一次完成重新打包和覆盖安装。更新覆盖程序文件，不重新执行 config init，不主动清除登录态；新增 scope 时仍需本人重新授权。已复制到项目中的 Skill 需单独更新，覆盖前保留自定义内容。
+
+安装器可通过 `powershell -NoProfile -ExecutionPolicy Bypass -File release/install.ps1 -InstallDir <目录>` 指定固定位置。自动化验收增加 `-NoPersistPath`，只验证隔离目录安装和子进程 PATH，不写真实用户 PATH。脚本的 Bypass 仅作用于该 PowerShell 进程，不修改系统执行策略。
 
 旧 0.1.1 / 0.1.2 为未正式发布的试验编号，本次收敛为统一 0.1.0；不要再分发旧内置凭证包。后续正式发布后，版本号应递增，避免同版本不同内容。
 

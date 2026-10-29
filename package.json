@@ -21,6 +21,7 @@
     "build": "node scripts/build.mjs",
     "prepack": "npm run build",
     "package": "node scripts/package.mjs",
+    "install:local": "npm run package && powershell.exe -NoProfile -ExecutionPolicy Bypass -File release/install.ps1",
     "test:package": "node scripts/test-package.mjs",
     "sandbox": "node scripts/sandbox.mjs"
   },

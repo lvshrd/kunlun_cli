@@ -1,13 +1,19 @@
 # 部门同事：用 AI 操作自己的昆仑文档
 
-使用统一的 `kunlun-cli-0.1.0.tgz`。安装包不包含部门凭证；应用配置只需做一次，日常任务直接对 Agent 说。
+使用维护者提供的完整 Windows 安装目录（含 `kunlun-cli-0.1.0.tgz` 和安装脚本）。安装包不包含部门凭证；应用配置只需做一次，日常任务直接对 Agent 说。
 
 ## 首次接入
 
 准备 Node.js 22.18+（推荐已验证的 24），连接办公网络，在安装包目录执行：
 
 ```powershell
-npm install -g .\kunlun-cli-0.1.0.tgz --offline --ignore-scripts --no-audit --no-fund
+.\install.cmd
+```
+
+程序自动安装到当前用户的 `%LOCALAPPDATA%\kunlun-cli`，自动添加用户 PATH。首次安装后完全退出并重新打开终端、Agent 应用（仅新建对话或终端标签页可能不够），再执行：
+
+```powershell
+kunlun.cmd --version
 kunlun.cmd config init
 ```
 
@@ -38,5 +44,7 @@ Agent 会直接使用 `auth login` 请求版本固定权限，引导本人浏览
 ## 更新与报障
 
 同一安装包供所有人使用，更新程序保留本机配置。不同工作目录默认共用 `~/.kunlun-cli`。退出使用 `kunlun.cmd auth logout`；卸载程序不会清除全部凭证或云端文档。
+
+更新时在新的交付目录再次运行 `install.cmd` 即可覆盖程序。CMD 中可用 `kunlun`，PowerShell 推荐 `kunlun.cmd`。固定路径已配置后，后续更新通常无需再改 PATH。Skill 是项目内的独立副本；需要更新时先保留自定义内容，再运行 `kunlun.cmd skills install --dir .cursor/skills --force`。
 
 反馈版本、发生时间和脱敏错误即可，不发送密钥或 token。应用配置或版本范围外的权限需求联系维护者；新增权限随新版分发，升级后按提示重新授权。授权失败时提供页面错误，不反复追加 scope 重试。

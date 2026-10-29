@@ -5,7 +5,12 @@
 准备 Node.js 22.18+，创建自己的昆仑智联应用，使 `kunlun auth scopes` 列出的用户身份权限生效，登记回调 `http://127.0.0.1:19876/callback`。
 
 ```powershell
-npm install -g .\kunlun-cli-0.1.0.tgz --offline --ignore-scripts --no-audit --no-fund
+.\install.cmd
+```
+
+Windows 使用完整交付目录中的安装器，自动加入用户 PATH。首次安装后重启终端和 Agent 应用，再执行：
+
+```powershell
 kunlun.cmd config init
 kunlun.cmd skills install --dir .cursor/skills
 ```

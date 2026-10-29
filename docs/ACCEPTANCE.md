@@ -1,5 +1,15 @@
 # 验收记录与复验步骤
 
+## 2026-10-29：Windows 安装与覆盖更新
+
+- `npm run test:package` 通过。Windows 安装器使用中文临时目录、空 npm 缓存离线安装；哈希不符时拒绝安装。
+- 同版本重装恢复被修改的程序文件并移除旧包残留，模拟 config、App Secret、用户 session 和 bot token 内容保持不变。
+- 安装后的 `kunlun` 在仓库外通过 CMD 的 PATH 查找执行成功；自动化使用 `-NoPersistPath`，验证前后真实用户 PATH 不变。
+- 打包新增 install.cmd / install.ps1、release.json；源码中的 `npm run install:local` 可一次打包并安装。版本继续使用 0.1.0 供本机迭代，正式分发应递增版本。
+- 本机已通过交付目录的 install.cmd 安装到真实用户的 `%LOCALAPPDATA%\kunlun-cli`；用户 PATH 原有内容及注册表值类型保留，仅新增安装目录。按持久环境重建 PATH 后，在仓库外 CMD 中通过 `where kunlun` 和 `kunlun --version` 验证解析与执行。真实配置目录的 config、App Secret、用户 session、bot token 四个文件安装前后摘要一致。
+
+已运行的终端和 Agent 仍需重启才能继承首次新增的 PATH；自动化子进程检查不等于实际 Agent 已完成重启验收。配置存储目录与安装目录相互独立。
+
 ## 2026-10-28：固定 scope 与授权前检查（待正式发布）
 
 维护者确认 `docx:document`、`drive:drive.metadata:readonly`、`drive:drive:readonly`、`space:document:retrieve` 四项一起请求已能完成真实登录。本轮据此固定版本权限集合；未重复执行真实授权，未验证新增云空间 API。

@@ -6,8 +6,16 @@
 
 ## 开始使用
 
+Windows 安装 Node.js 22.18+，解压完整交付目录后运行：
+
 ```powershell
-npm install -g .\kunlun-cli-0.1.0.tgz --offline --ignore-scripts --no-audit --no-fund
+.\install.cmd
+```
+
+安装器校验安装包，将程序安装到 `%LOCALAPPDATA%\kunlun-cli` 并自动加入用户 PATH，无需管理员权限。首次安装后重启终端和 Agent 应用，再执行：
+
+```powershell
+kunlun.cmd --version
 kunlun.cmd config init
 kunlun.cmd skills install --dir .cursor/skills
 kunlun.cmd auth login
@@ -42,6 +50,8 @@ npm run sandbox
 ```
 
 统一包在 `release/kunlun-cli-0.1.0.tgz`。源码调试用 `node src/main.ts <命令>`；安装后在任意目录使用 `kunlun`，PowerShell 推荐 `kunlun.cmd` 避免 ps1 执行策略问题。
+
+维护者在仓库执行 `npm run install:local`，即可重新打包并覆盖安装到本机固定目录；重复安装保留配置和登录态，用户 PATH 不重复添加。给同事分发完整的 `release` 交付文件，更新时再次运行 `install.cmd`。项目内已复制的 Skill 如需同步，另行执行 `kunlun.cmd skills install --dir .cursor/skills --force`（覆盖前保留自己的改动）。
 
 [架构](ARCHITECTURE.md) · [开发路线](docs/ROADMAP.md) · [验收记录](docs/ACCEPTANCE.md)
 

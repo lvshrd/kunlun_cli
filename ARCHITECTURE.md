@@ -59,3 +59,5 @@ open.fklzl.cnpc.com.cn（及 accounts 域授权）
 安装包附带 SHA-256 与使用说明，无运行时 npm 依赖。test:package 在临时 prefix 与配置目录验证安装、模拟配置、Skill 和写入前拦截；sandbox 为人工真实试用保留独立 prefix、缓存、配置及工作目录。只换 cwd 不能隔离默认配置。
 
 包仍设置 `private: true`，当前通过 tgz 分发；内部 npm 源仍需另行配置与发布。分发流程见 [MAINTAINER.md](docs/MAINTAINER.md)。
+
+Windows 交付目录附带 install.cmd / install.ps1 和 release.json；安装脚本在校验哈希后使用专属 npm prefix，成功后将该目录去重加入当前用户 PATH。`npm run install:local` 组合打包和本机安装。更新只替换安装包内文件，配置和 session 仍在独立配置目录；自动化使用 NoPersistPath 避免改变测试机器的持久环境。

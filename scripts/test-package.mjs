@@ -3,7 +3,8 @@ import { spawnSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
-import { packProject, manifest, runNpm } from "./package-lib.mjs"
+import { createHash } from "node:crypto"
+import { packProject, manifest, runNpm, projectRoot } from "./package-lib.mjs"
 
 const temporary = mkdtempSync(path.join(tmpdir(), "kunlun-package-"))
 const prefix = path.join(temporary, "安装目录")
@@ -35,9 +36,39 @@ function ok(args, input) {
   return payload.data
 }
 
+function installWindows(archive) {
+  return spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path.join(projectRoot, "scripts/install.ps1"),
+    "-PackagePath", archive, "-InstallDir", prefix, "-NoPersistPath"], {
+    cwd: work, env, encoding: "utf8", timeout: 120_000, windowsHide: true,
+  })
+}
+
+function userPath() {
+  const result = spawnSync("powershell.exe", ["-NoProfile", "-Command",
+    "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment'); if ($key) { try { $key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) } finally { $key.Dispose() } }"],
+  { env, encoding: "utf8", timeout: 30_000, windowsHide: true })
+  assert.ifError(result.error)
+  assert.equal(result.status, 0, result.stderr)
+  return result.stdout
+}
+
 try {
   const packed = packProject(temporary)
-  runNpm(["install", "--global", "--prefix", prefix, packed.path, "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "--update-notifier=false"], { env })
+  const beforeUserPath = process.platform === "win32" ? userPath() : undefined
+  if (process.platform === "win32") {
+    writeFileSync(packed.path + ".sha256", "0".repeat(64) + "  " + packed.filename)
+    const rejected = installWindows(packed.path)
+    assert.ifError(rejected.error)
+    assert.notEqual(rejected.status, 0)
+    assert.equal(existsSync(prefix), false, "校验失败不得开始安装")
+    const checksum = createHash("sha256").update(readFileSync(packed.path)).digest("hex")
+    writeFileSync(packed.path + ".sha256", `${checksum}  ${packed.filename}\n`)
+    const installed = installWindows(packed.path)
+    assert.ifError(installed.error)
+    assert.equal(installed.status, 0, installed.stdout + installed.stderr)
+  } else {
+    runNpm(["install", "--global", "--prefix", prefix, packed.path, "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "--update-notifier=false"], { env })
+  }
   steps.push("安装包无运行时依赖，使用空 npm 缓存离线全局安装成功")
   assert.equal(ok(["--version"]).version, manifest.version)
   const help = invoke(["--help"])
@@ -93,6 +124,29 @@ try {
   mkdirSync(env.KUNLUN_CONFIG_DIR, { recursive: true })
   writeFileSync(path.join(env.KUNLUN_CONFIG_DIR, "user-session.json"), "{}")
   writeFileSync(path.join(env.KUNLUN_CONFIG_DIR, "bot-token.json"), "{}")
+  if (process.platform === "win32") {
+    const protectedFiles = ["config.json", "app-secret", "user-session.json", "bot-token.json"]
+    const before = protectedFiles.map((file) => readFileSync(path.join(env.KUNLUN_CONFIG_DIR, file), "utf8"))
+    const installedMain = path.join(prefix, "node_modules/kunlun-cli/dist/main.js")
+    const original = readFileSync(installedMain, "utf8")
+    writeFileSync(installedMain, original + "\n// old installation marker\n")
+    const obsolete = path.join(prefix, "node_modules/kunlun-cli/obsolete-test-file")
+    writeFileSync(obsolete, "old release")
+    const updated = installWindows(packed.path)
+    assert.ifError(updated.error)
+    assert.equal(updated.status, 0, updated.stdout + updated.stderr)
+    assert.equal(readFileSync(installedMain, "utf8"), original, "同版本重复安装应覆盖程序文件")
+    assert.equal(existsSync(obsolete), false, "覆盖安装应移除旧包残留")
+    protectedFiles.forEach((file, index) => assert.equal(readFileSync(path.join(env.KUNLUN_CONFIG_DIR, file), "utf8"), before[index]))
+    assert.equal(userPath(), beforeUserPath, "隔离验收不能修改真实用户 PATH")
+    const commandEnv = Object.fromEntries(Object.entries(env).filter(([key]) => key.toLowerCase() !== "path"))
+    commandEnv.Path = prefix + ";" + (Object.entries(env).find(([key]) => key.toLowerCase() === "path")?.[1] ?? "")
+    const global = spawnSync("cmd.exe", ["/d", "/c", "kunlun --version"], { cwd: work, env: commandEnv, encoding: "utf8", timeout: 30_000, windowsHide: true })
+    assert.ifError(global.error)
+    assert.equal(global.status, 0, global.stderr)
+    assert.equal(JSON.parse(global.stdout).data.version, manifest.version)
+    steps.push("Windows 安装器校验哈希、同版本覆盖更新、清理旧包文件；配置和登录态不变，CMD 从 PATH 执行成功")
+  }
   ok(["config", "init", "--app-id", "cli_other", "--app-secret-stdin"], "other-test-secret\n")
   assert.equal(ok(["config", "show"]).app_id, "cli_other")
   assert.equal(ok(["config", "show"]).secret_source, "file")
