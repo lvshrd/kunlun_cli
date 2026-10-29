@@ -26,15 +26,43 @@ test("真实命令路由搜索候选并输出 ID、类型及已配置的昆仑�
 test("按完整名称读取先搜索再用找到的 ID 读取，保留原有 ID 读取入口", async () => {
   await withApp(async invoke => {
     const blocks = { code: 0, data: { items: [{ text: { elements: [{ text_run: { content: "规程正文" } }] } }], has_more: false } }
-    const named = await invoke(["docs", "read", "--name", "操作规程"], [searchResponse([item()]), blocks])
+    const meta = { code: 0, data: { document: { revision_id: 9 } } }
+    const named = await invoke(["docs", "read", "--name", "操作规程"], [searchResponse([item()]), meta, blocks])
     assert.equal(named.code, 0)
     assert.equal(named.payload.data.markdown, "规程正文")
     assert.equal(named.payload.data.located_by, "name")
-    assert.equal(named.requests[1]?.url.pathname, "/open-apis/docx/v1/documents/dox_1/blocks")
-    const byId = await invoke(["docs", "read", "--document", "dox_1"], [blocks])
+    assert.equal(named.requests[1]?.url.pathname, "/open-apis/docx/v1/documents/dox_1")
+    assert.equal(named.requests[2]?.url.pathname, "/open-apis/docx/v1/documents/dox_1/blocks")
+    assert.equal(named.requests[2]?.url.searchParams.get("document_revision_id"), "9")
+    assert.equal(named.payload.data.complete, true)
+    const byId = await invoke(["docs", "read", "--document", "dox_1"], [meta, blocks])
     assert.equal(byId.code, 0)
-    assert.equal(byId.requests.length, 1)
+    assert.equal(byId.requests.length, 2)
     assert.equal(byId.payload.data.located_by, undefined)
+    const raw = await invoke(["docs", "read", "--name", "操作规程", "--raw"], [searchResponse([item()]), meta, blocks])
+    assert.equal(raw.code, 0)
+    assert.equal(raw.payload.data.located_by, "name")
+    assert.deepEqual(raw.payload.data.raw_blocks, blocks.data.items)
+    const noRaw = await invoke(["docs", "read", "--name", "操作规程", "--raw=false"], [searchResponse([item()]), meta, blocks])
+    assert.equal(noRaw.code, 0)
+    assert.equal("raw_blocks" in noRaw.payload.data, false)
+  })
+})
+
+test("按名称定位成功后正文分页失败仍保留 ID 和部分结果，不误报全文成功", async () => {
+  await withApp(async invoke => {
+    const result = await invoke(["docs", "read", "--name", "操作规程", "--raw"], [
+      searchResponse([item()]), { data: { document: { revision_id: 9 } } },
+      { data: { items: [{ text: { elements: [{ text_run: { content: "部分正文" } }] } }], has_more: true } },
+    ])
+    assert.equal(result.code, 1)
+    assert.equal(result.payload.error.type, "incomplete")
+    assert.equal(result.payload.data.reason, "missing_page_token")
+    assert.equal(result.payload.data.document_id, "dox_1")
+    assert.equal(result.payload.data.markdown, "部分正文")
+    assert.equal(result.payload.data.complete, false)
+    assert.equal(result.payload.data.raw_blocks.length, 1)
+    assert.equal(result.requests.length, 3)
   })
 })
 
@@ -63,6 +91,7 @@ test("搜索参数错误、互斥目标和 bot 身份在网络前拒绝", async 
       ["search", "--query", "规程", "--limit="], ["search", "--query", "规程", "--as", "bot"],
       ["read", "--name", "规程", "--as", "bot"], ["read", "--name", "规程", "--document", "dox_1"],
       ["read", "--name", "规程", "--dry-run"], ["read", "--nmae", "规程"],
+      ["search", "--query", "规程", "--raw"], ["read", "--name", "规程", "--raw=invalid"],
     ]) {
       const result = await invoke(["docs", ...args], [])
       assert.equal(result.code, 1, args.join(" "))

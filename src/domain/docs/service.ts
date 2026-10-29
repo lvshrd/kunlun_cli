@@ -1,7 +1,8 @@
 import type { CallRequest, OpenApi } from "../../client/http.ts"
 import { CliError } from "../../errors.ts"
 import { isRecord, str } from "../../json.ts"
-import { blocksToMarkdown, chunk, contentToBlocks, type DocBlock } from "./blocks.ts"
+import { chunk, contentToBlocks, type DocBlock } from "./blocks.ts"
+import { inspectBlocks } from "./read.ts"
 
 const batchSize = 50
 
@@ -50,24 +51,59 @@ export async function appendDocument(api: OpenApi, token: string, documentId: st
   return blocks.length
 }
 
-export async function readDocument(api: OpenApi, token: string, documentId: string): Promise<{ markdown: string; blockCount: number }> {
+export async function readDocument(api: OpenApi, token: string, documentId: string, options: { raw?: boolean } = {}) {
+  const base = `/open-apis/docx/v1/documents/${encodeURIComponent(documentId)}`
+  const meta = await api.call({ method: "GET", path: base, token })
+  const metaData = isRecord(meta) && isRecord(meta.data) ? meta.data : {}
+  const document = isRecord(metaData.document) ? metaData.document : {}
+  const revision = document.revision_id
+  if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 0) {
+    throw new CliError("api", "无法获取文档版本，停止读取", "确认接口返回有效的 revision_id 后重试")
+  }
   const items: unknown[] = []
   let pageToken = ""
-  for (let page = 0; page < 20; page++) {
-    const query: Record<string, string> = { page_size: "500" }
-    if (pageToken) query.page_token = pageToken
-    const body = await api.call({
-      method: "GET",
-      path: `/open-apis/docx/v1/documents/${encodeURIComponent(documentId)}/blocks`,
-      token,
-      query,
-    })
-    const data = isRecord(body) && isRecord(body.data) ? body.data : {}
-    if (Array.isArray(data.items)) items.push(...data.items)
-    if (data.has_more !== true || !str(data.page_token)) break
-    pageToken = str(data.page_token) ?? ""
+  let pagesRead = 0
+  const seen = new Set<string>()
+  const result = (paginationComplete: boolean) => {
+    const converted = inspectBlocks(items)
+    return {
+      markdown: converted.markdown, blockCount: items.length, revision,
+      pagination_complete: paginationComplete, content_complete: converted.diagnostics.length === 0,
+      complete: paginationComplete && converted.diagnostics.length === 0,
+      pages_read: pagesRead, diagnostics: converted.diagnostics, blocks: converted.blocks,
+      ...(options.raw ? { raw_blocks: items } : {}),
+    }
   }
-  return { markdown: blocksToMarkdown(items), blockCount: items.length }
+  const incomplete = (reason: string, cause?: unknown) => {
+    const { blockCount, ...partial } = result(false)
+    return new CliError("incomplete", "文档未完整读取，不能当作全文使用",
+      cause instanceof CliError && cause.hint ? cause.hint : "仅可使用已返回的部分内容；不要据此删除、重建文档或断言未返回的内容不存在。", {
+        ...partial, block_count: blockCount, document_id: documentId, reason,
+        ...(cause instanceof CliError ? { cause: { type: cause.type, message: cause.message } } : {}),
+      })
+  }
+  for (let page = 0; page < 20; page++) {
+    const query: Record<string, string> = { page_size: "500", document_revision_id: String(revision) }
+    if (pageToken) query.page_token = pageToken
+    let body: unknown
+    try {
+      body = await api.call({ method: "GET", path: `${base}/blocks`, token, query })
+    } catch (err) {
+      if (pagesRead === 0) throw err
+      throw incomplete("request_failed", err)
+    }
+    const data = isRecord(body) && isRecord(body.data) ? body.data : {}
+    if (!Array.isArray(data.items) || typeof data.has_more !== "boolean") throw incomplete("invalid_page")
+    items.push(...data.items)
+    pagesRead++
+    if (!data.has_more) return result(true)
+    const next = str(data.page_token)?.trim()
+    if (!next) throw incomplete("missing_page_token")
+    if (seen.has(next)) throw incomplete("repeated_page_token")
+    seen.add(next)
+    pageToken = next
+  }
+  throw incomplete("page_limit")
 }
 
 async function appendBlocks(api: OpenApi, token: string, documentId: string, blocks: DocBlock[]): Promise<void> {

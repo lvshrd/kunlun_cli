@@ -21,7 +21,7 @@ export function docsRoutes(): Route[] {
     { path: ["docs", "create"], summary: "创建云文档，并把 Markdown 标题和段落写进去", run: create },
     { path: ["docs", "append"], summary: "向已有云文档末尾追加正文", run: append },
     { path: ["docs", "search"], summary: "按关键词搜索本人可见的文档；--query [--limit 20] [--offset 0]", run: search },
-    { path: ["docs", "read"], summary: "读取文档；--document <ID或链接> 或 --name <完整标题>（唯一匹配）", run: read },
+    { path: ["docs", "read"], summary: "读取文档及完整性诊断；--document <ID或链接> 或 --name <完整标题>；--raw 返回原始块", run: read },
     { path: ["docs", "edit"], summary: "唯一匹配普通段落文本后替换；--find --replace --dry-run [--revision]", run: edit },
   ]
 }
@@ -105,7 +105,7 @@ async function append(invocation: Invocation): Promise<void> {
 }
 
 async function read(invocation: Invocation): Promise<void> {
-  validateFlags(invocation, ["document", "name", "as"])
+  validateFlags(invocation, ["document", "name", "as"], ["raw"])
   const document = strFlag(invocation.flags, "document")
   const name = strFlag(invocation.flags, "name")
   if (invocation.flags.document !== undefined && invocation.flags.name !== undefined) throw new CliError("usage", "--document 与 --name 只能选一个")
@@ -117,13 +117,13 @@ async function read(invocation: Invocation): Promise<void> {
   const token = await tokenFor(app, identity)
   const located = name ? await resolveDocumentByName(app.client, token, name) : undefined
   const documentId = located ? located.document_id : documentIdFromInput(document!)
-  const result = await readDocument(app.client, token, documentId)
+  const { blockCount, ...result } = await readDocument(app.client, token, documentId, { raw: boolFlag(invocation.flags, "raw") })
   printOk({
     identity,
     document_id: documentId,
     ...(located ? { title: located.title, located_by: "name" } : {}),
-    block_count: result.blockCount,
-    markdown: result.markdown,
+    block_count: blockCount,
+    ...result,
     url: documentUrl(app.config.webBaseUrl, documentId),
   })
 }
@@ -150,8 +150,12 @@ function requireUserSearch(identity: "user" | "bot"): void {
   if (identity !== "user") throw new CliError("usage", "昆仑搜索接口仅支持用户身份；--as 只能为 user", "使用本人授权，不自动切换为 bot。")
 }
 
-function validateFlags(invocation: Invocation, allowed: string[]): void {
+function validateFlags(invocation: Invocation, allowed: string[], switches: string[] = []): void {
   for (const [name, value] of Object.entries(invocation.flags)) {
+    if (switches.includes(name)) {
+      if (typeof value !== "boolean") throw new CliError("usage", `--${name} 是开关`)
+      continue
+    }
     if (!allowed.includes(name)) throw new CliError("usage", `不支持参数 --${name}`)
     if (typeof value !== "string") throw new CliError("usage", `--${name} 需要一个值`)
   }

@@ -1,3 +1,5 @@
+import { inspectBlocks } from "./read.ts"
+
 export interface TextBody {
   elements: Array<{ text_run: { content: string } }>
 }
@@ -9,12 +11,6 @@ export interface DocBlock {
   heading2?: TextBody
   heading3?: TextBody
 }
-
-const headingKeys = [
-  { hashes: 1, field: "heading1", blockType: 3, prefix: "# " },
-  { hashes: 2, field: "heading2", blockType: 4, prefix: "## " },
-  { hashes: 3, field: "heading3", blockType: 5, prefix: "### " },
-] as const
 
 export function contentToBlocks(content: string): DocBlock[] {
   const blocks: DocBlock[] = []
@@ -32,12 +28,7 @@ export function contentToBlocks(content: string): DocBlock[] {
 }
 
 export function blocksToMarkdown(blocks: unknown[]): string {
-  const lines: string[] = []
-  for (const block of blocks) {
-    const line = blockToLine(block)
-    if (line) lines.push(line)
-  }
-  return lines.join("\n")
+  return inspectBlocks(blocks).markdown
 }
 
 export function chunk<T>(items: T[], size: number): T[][] {
@@ -56,32 +47,4 @@ function headingBlock(level: number, content: string): DocBlock {
   if (level === 1) return { block_type: 3, heading1: body }
   if (level === 2) return { block_type: 4, heading2: body }
   return { block_type: 5, heading3: body }
-}
-
-function blockToLine(block: unknown): string | undefined {
-  if (!block || typeof block !== "object") return undefined
-  const record = block as Record<string, unknown>
-  for (const spec of headingKeys) {
-    const text = elementText(record[spec.field])
-    if (text) return `${spec.prefix}${text}`
-  }
-  const page = elementText(record.page)
-  if (page) return `# ${page}`
-  const text = elementText(record.text)
-  if (text) return text
-  return undefined
-}
-
-function elementText(value: unknown): string | undefined {
-  if (!value || typeof value !== "object") return undefined
-  const elements = (value as { elements?: unknown }).elements
-  if (!Array.isArray(elements)) return undefined
-  const parts: string[] = []
-  for (const element of elements) {
-    if (!element || typeof element !== "object") continue
-    const content = (element as { text_run?: { content?: unknown } }).text_run?.content
-    if (typeof content === "string" && content) parts.push(content)
-  }
-  const joined = parts.join("")
-  return joined || undefined
 }

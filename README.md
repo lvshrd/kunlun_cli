@@ -47,6 +47,8 @@ kunlun.cmd docs read --name "泵站巡检规程"
 
 按名称读取要求完整标题唯一匹配；同名或结果未取全时返回候选，不自动选第一条。搜索仅支持本人身份，沿用现有 `drive:drive:readonly` 权限，不增加管理权限；接口已按昆仑官方文档封装，真实环境仍待验收。类型、分页和权限依据见[搜索接口说明](docs/SEARCH_API.md)。
 
+读取返回 `complete`、`pagination_complete`、`content_complete` 和 `diagnostics`；成功退出也应检查是否完整，省略内容不能视为不存在。分页异常以非零退出返回部分结果。`docs read --raw` 可按需返回原始块；文本提取不承诺复杂格式保真。
+
 ## 开发与交付
 
 ```powershell

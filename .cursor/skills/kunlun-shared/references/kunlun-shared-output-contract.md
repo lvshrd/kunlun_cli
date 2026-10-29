@@ -16,6 +16,7 @@ kunlun-cli 的普通业务命令及 `version` / `--version` 向 **stdout** 写�
 - `identity`: `"user"` | `"bot"`（docs、api 等）
 - `dry_run`: `true`（仅预览，未调用写接口）
 - `document_id`、`markdown`、`url`（docs 相关）
+- `docs read` 还需检查 `complete`；`pagination_complete` 与 `content_complete` 分别表示分页与已取回内容的文本转换完整性。`ok: true` 不等于复杂文档已完整呈现，diagnostics 列出省略位置。
 
 ## 失败（退出码非 0，默认 1）
 
@@ -32,6 +33,7 @@ kunlun-cli 的普通业务命令及 `version` / `--version` 向 **stdout** 写�
 
 - `type` 常见值：`usage`、`config`、`auth`、`api` 等。
 - 部分错误带 `data`（例如上游响应片段、已创建但未写完的 `document_id`）。
+- `incomplete` 可表示名称定位的搜索候选未取全（data.items / has_more），或正文分页未完成（data.document_id / reason / 完整性标记和部分文本）。前者不能确认唯一目标，后者不能据此声称全文已读取或推断缺失内容不存在。
 - 存在 `hint` 时，应原样展示给用户并按 hint 操作（如去昆仑开发者后台开权限）。
 
 ## 判断成功的规则
