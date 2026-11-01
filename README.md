@@ -36,7 +36,16 @@ kunlun.cmd auth login
 | 外部使用者 | [配置自己的应用](docs/EXTERNAL.md) |
 | 自己先试安装包 | [独立安装、独立配置、独立工作目录](docs/TRYOUT.md) |
 
-当前支持创建、读取、末尾追加和唯一文本定位修改；搜索、删除、移动、重命名和复杂格式编辑尚未实现。这是本机 Agent 调用 CLI，不是昆仑“小惠”聊天窗口执行任务。
+当前支持按关键词搜索候选、按完整标题唯一定位读取、创建、读取、末尾追加和唯一文本定位修改；删除、移动、重命名和复杂格式编辑尚未实现。这是本机 Agent 调用 CLI，不是昆仑“小惠”聊天窗口执行任务。
+
+只记得名称时，可以对 Agent 说：“使用 kunlun-doc，找一下泵站巡检规程并总结注意事项。”也可直接执行：
+
+```powershell
+kunlun.cmd docs search --query "巡检规程"
+kunlun.cmd docs read --name "泵站巡检规程"
+```
+
+按名称读取要求完整标题唯一匹配；同名或结果未取全时返回候选，不自动选第一条。搜索仅支持本人身份，沿用现有 `drive:drive:readonly` 权限，不增加管理权限；接口已按昆仑官方文档封装，真实环境仍待验收。类型、分页和权限依据见[搜索接口说明](docs/SEARCH_API.md)。
 
 ## 开发与交付
 
@@ -53,6 +62,6 @@ npm run sandbox
 
 维护者在仓库执行 `npm run install:local`，即可重新打包并覆盖安装到本机固定目录；重复安装保留配置和登录态，用户 PATH 不重复添加。给同事分发完整的 `release` 交付文件，更新时再次运行 `install.cmd`。项目内已复制的 Skill 如需同步，另行执行 `kunlun.cmd skills install --dir .cursor/skills --force`（覆盖前保留自己的改动）。
 
-[架构](ARCHITECTURE.md) · [开发路线](docs/ROADMAP.md) · [验收记录](docs/ACCEPTANCE.md)
+[架构](ARCHITECTURE.md) · [产品能力与拓展规划](docs/PRODUCT_PLAN.md) · [开发路线](docs/ROADMAP.md) · [验收记录](docs/ACCEPTANCE.md)
 
 程序安装、应用配置、用户授权彼此独立。换工作目录不会隔离配置；默认配置仍是 `~/.kunlun-cli`，独立试用必须设置 `KUNLUN_CONFIG_DIR`。本地凭证、生成物和试用目录不提交 Git。

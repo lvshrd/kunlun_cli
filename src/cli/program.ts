@@ -56,6 +56,8 @@ export function formatHelp(routes: Route[]): string {
     "  kunlun docs create --title 操作文档 --file .\\操作文档.md --dry-run",
     "  kunlun docs create --title 操作文档 --file .\\操作文档.md",
     "  kunlun docs read --document <document_id>",
+    "  kunlun docs search --query 操作规程",
+    "  kunlun docs read --name 完整文档标题",
     "",
     "--version 查看版本；--help 查看帮助；长正文用 --file 传入 UTF-8 文件。",
     "写入命令去掉 --dry-run 后会真实修改云端；配置和登录态保存在当前用户的 ~/.kunlun-cli。",

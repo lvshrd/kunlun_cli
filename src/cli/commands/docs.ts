@@ -8,6 +8,7 @@ import { contentToBlocks } from "../../domain/docs/blocks.ts"
 import { appendDocument, createDocument, documentIdFromInput, readDocument } from "../../domain/docs/service.ts"
 import { editDocument } from "../../domain/docs/edit.ts"
 import { documentTemplate } from "../../domain/docs/template.ts"
+import { resolveDocumentByName, searchDocuments, validateSearchInput } from "../../domain/docs/search.ts"
 import { requireApp } from "../../runtime.ts"
 import { boolFlag, strFlag } from "../args.ts"
 import { readBody } from "../content.ts"
@@ -19,7 +20,8 @@ export function docsRoutes(): Route[] {
     { path: ["docs", "template"], summary: "生成本地 UTF-8 操作文档模板，不访问云端、不覆盖文件", run: template },
     { path: ["docs", "create"], summary: "创建云文档，并把 Markdown 标题和段落写进去", run: create },
     { path: ["docs", "append"], summary: "向已有云文档末尾追加正文", run: append },
-    { path: ["docs", "read"], summary: "把云文档读成 Markdown 文本", run: read },
+    { path: ["docs", "search"], summary: "按关键词搜索本人可见的文档；--query [--limit 20] [--offset 0]", run: search },
+    { path: ["docs", "read"], summary: "读取文档；--document <ID或链接> 或 --name <完整标题>（唯一匹配）", run: read },
     { path: ["docs", "edit"], summary: "唯一匹配普通段落文本后替换；--find --replace --dry-run [--revision]", run: edit },
   ]
 }
@@ -103,20 +105,56 @@ async function append(invocation: Invocation): Promise<void> {
 }
 
 async function read(invocation: Invocation): Promise<void> {
+  validateFlags(invocation, ["document", "name", "as"])
   const document = strFlag(invocation.flags, "document")
-  if (!document) throw new CliError("usage", "缺少 --document")
+  const name = strFlag(invocation.flags, "name")
+  if (invocation.flags.document !== undefined && invocation.flags.name !== undefined) throw new CliError("usage", "--document 与 --name 只能选一个")
+  if (!document && !name) throw new CliError("usage", "提供 --document <ID或docx链接> 或 --name <完整标题>")
   if (invocation.rest.length > 0) throw new CliError("usage", "docs read 不接受位置参数")
-  const app = requireApp()
   const identity = identityOf(invocation)
-  const documentId = documentIdFromInput(document)
-  const result = await readDocument(app.client, await tokenFor(app, identity), documentId)
+  if (name) requireUserSearch(identity)
+  const app = requireApp()
+  const token = await tokenFor(app, identity)
+  const located = name ? await resolveDocumentByName(app.client, token, name) : undefined
+  const documentId = located ? located.document_id : documentIdFromInput(document!)
+  const result = await readDocument(app.client, token, documentId)
   printOk({
     identity,
     document_id: documentId,
+    ...(located ? { title: located.title, located_by: "name" } : {}),
     block_count: result.blockCount,
     markdown: result.markdown,
     url: documentUrl(app.config.webBaseUrl, documentId),
   })
+}
+
+async function search(invocation: Invocation): Promise<void> {
+  validateFlags(invocation, ["query", "limit", "offset", "as"])
+  if (invocation.rest.length > 0) throw new CliError("usage", "docs search 不接受位置参数")
+  const input = validateSearchInput({
+    query: strFlag(invocation.flags, "query") ?? "",
+    limit: invocation.flags.limit === undefined ? undefined : Number(strFlag(invocation.flags, "limit") ?? NaN),
+    offset: invocation.flags.offset === undefined ? undefined : Number(strFlag(invocation.flags, "offset") ?? NaN),
+  })
+  const identity = identityOf(invocation)
+  requireUserSearch(identity)
+  const app = requireApp()
+  const result = await searchDocuments(app.client, await tokenFor(app, identity), input)
+  printOk({ identity, ...result, items: result.items.map(item => ({
+    ...item,
+    ...(item.document_id ? { url: documentUrl(app.config.webBaseUrl, item.document_id) } : {}),
+  })) })
+}
+
+function requireUserSearch(identity: "user" | "bot"): void {
+  if (identity !== "user") throw new CliError("usage", "昆仑搜索接口仅支持用户身份；--as 只能为 user", "使用本人授权，不自动切换为 bot。")
+}
+
+function validateFlags(invocation: Invocation, allowed: string[]): void {
+  for (const [name, value] of Object.entries(invocation.flags)) {
+    if (!allowed.includes(name)) throw new CliError("usage", `不支持参数 --${name}`)
+    if (typeof value !== "string") throw new CliError("usage", `--${name} 需要一个值`)
+  }
 }
 
 async function tokenFor(app: ReturnType<typeof requireApp>, identity: "user" | "bot"): Promise<string> {

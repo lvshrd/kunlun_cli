@@ -1,5 +1,13 @@
 # 验收记录与复验步骤
 
+## 2026-11-01：搜索定位（文档核对与本地验证，真实业务待验收）
+
+- 先通过昆仑官方接口目录定位“搜索云文档”，读取真实文档正文，确认 POST `/open-apis/suite/docs-api/search/object`、仅用户身份、请求类型 doc 包含 doc/docx，以及 offset + count < 200。权限为 drive:drive、drive:drive:readonly、search:docs:read 任选其一；沿用版本已有 drive:drive:readonly，没有扩 scope。来源与边界见 [SEARCH_API.md](SEARCH_API.md)。
+- 新增 `docs search --query` 和 `docs read --name`。完整标题唯一匹配且明确为 docx 才自动读取；同名、分页未完、相近标题或旧版类型返回候选及明确错误，不读取猜测目标。
+- 使用本机已有 Node.js 22.19.0，安装锁定开发依赖后，`npm test` 45 项及 `npm run check` 通过。新增模拟测试覆盖请求契约、分页上限与下一页尺寸、异常响应、权限错误、类型区分和搜索后读取的真实命令路由。
+- `npm run test:package` 通过（macOS，使用临时 npm 缓存）：离线隔离安装、仓库外命令、帮助包含搜索入口、非法分页在配置前拒绝、Skill 包含搜索工作流。未运行 Windows 安装器实测，也没有更新真实用户 PATH 或现有程序安装。
+- 本机无默认应用配置和本人登录态，未调用真实搜索业务接口。仍需验证实际授权、中文关键词、doc/docx 响应类型、分页、同名消歧和选定文档后的读回。以上本地验证不能代替真实平台验收，尚未作为新版本正式分发。
+
 ## 2026-10-29：Windows 安装与覆盖更新
 
 - `npm run test:package` 通过。Windows 安装器使用中文临时目录、空 npm 缓存离线安装；哈希不符时拒绝安装。

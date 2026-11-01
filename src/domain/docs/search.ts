@@ -1,0 +1,103 @@
+import type { OpenApi } from "../../client/http.ts"
+import { CliError } from "../../errors.ts"
+import { isRecord, str } from "../../json.ts"
+
+export interface SearchInput {
+  query: string
+  limit?: number
+  offset?: number
+}
+
+export interface SearchItem {
+  token: string
+  type: string
+  title: string
+  owner_id?: string
+  document_id?: string
+}
+
+export interface SearchResult {
+  query: string
+  items: SearchItem[]
+  total: number
+  offset: number
+  limit: number
+  has_more: boolean
+  next_offset: number | null
+  next_limit: number | null
+  search_window_exhausted: boolean
+}
+
+// 昆仑文档：/document/ukTMukTMukTM/ugDM4UjL4ADO14COwgTN
+// docs_types 的 doc 同时包含 doc/docx；仅 user_access_token；offset + count < 200。
+export function validateSearchInput(input: SearchInput): Required<SearchInput> {
+  const query = input.query.trim()
+  const limit = input.limit ?? 20
+  const offset = input.offset ?? 0
+  if (!query) throw new CliError("usage", "搜索关键词不能为空")
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) {
+    throw new CliError("usage", "--limit 必须是 1 到 50 的整数")
+  }
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset + limit >= 200) {
+    throw new CliError("usage", "--offset 必须为非负整数，且 offset + limit 必须小于 200", "缩小关键词范围；该接口无法遍历 200 条及以后的结果。")
+  }
+  return { query, limit, offset }
+}
+
+export async function searchDocuments(api: OpenApi, token: string, input: SearchInput): Promise<SearchResult> {
+  const { query, limit, offset } = validateSearchInput(input)
+  const response = await api.call({
+    method: "POST",
+    path: "/open-apis/suite/docs-api/search/object",
+    token,
+    body: { search_key: query, count: limit, offset, docs_types: ["doc"] },
+  })
+  const data = isRecord(response) && isRecord(response.data) ? response.data : undefined
+  if (!data || !Array.isArray(data.docs_entities) || typeof data.has_more !== "boolean"
+    || typeof data.total !== "number" || !Number.isSafeInteger(data.total) || data.total < 0) {
+    throw invalidResponse()
+  }
+  if (data.docs_entities.length > limit || (data.has_more && data.docs_entities.length === 0)) throw invalidResponse()
+  const items = data.docs_entities.map(parseItem)
+  const nextOffset = offset + items.length
+  const exhausted = data.has_more && nextOffset >= 199
+  return {
+    query, items, total: data.total, offset, limit, has_more: data.has_more,
+    next_offset: data.has_more && !exhausted ? nextOffset : null,
+    next_limit: data.has_more && !exhausted ? Math.min(limit, 199 - nextOffset) : null,
+    search_window_exhausted: exhausted,
+  }
+}
+
+export async function resolveDocumentByName(api: OpenApi, token: string, name: string): Promise<SearchItem & { document_id: string }> {
+  const result = await searchDocuments(api, token, { query: name, limit: 50 })
+  const hint = "先运行 kunlun docs search --query <关键词> 查看候选，缩小范围或选定候选后用 docs read --document <ID>。"
+  // 第一页不能证明全局唯一；即使已出现一个同名结果，也不能直接选中。
+  if (result.has_more) {
+    throw new CliError("incomplete", "搜索还有更多结果，无法确认完整标题唯一，未读取正文", hint, result)
+  }
+  const matches = [...new Map(result.items.filter(item => item.title === name.trim())
+    .map(item => [`${item.type}:${item.token}`, item])).values()]
+  if (matches.length === 0) throw new CliError("not_found", "搜索结果中没有完整标题匹配的文档，未读取正文", hint, result)
+  if (matches.length > 1) throw new CliError("ambiguous", "找到多个同名文档，未自动选择", hint, result)
+  const match = matches[0]!
+  if (!match.document_id) {
+    throw new CliError("unsupported", "匹配的资源不是已确认的新版 docx 文档，当前不能读取其正文", "依据候选类型选择可用文档；不要把旧版 doc token 当作 docx ID。", result)
+  }
+  return { ...match, document_id: match.document_id }
+}
+
+function parseItem(value: unknown): SearchItem {
+  if (!isRecord(value) || !str(value.docs_token) || !str(value.docs_type) || typeof value.title !== "string") throw invalidResponse()
+  const token = value.docs_token as string
+  const type = value.docs_type as string
+  return {
+    token, type, title: value.title,
+    ...(str(value.owner_id) ? { owner_id: value.owner_id as string } : {}),
+    ...(type === "docx" ? { document_id: token } : {}),
+  }
+}
+
+function invalidResponse(): CliError {
+  return new CliError("api", "搜索接口响应缺少有效的候选或分页信息，未将其视为空结果", "请维护者核对当前昆仑版本的搜索接口响应；不要猜测文档类型或扩大授权。")
+}
