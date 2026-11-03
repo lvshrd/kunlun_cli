@@ -24,14 +24,12 @@ export function runNpm(args, options = {}) {
 
 function validateFiles(packed) {
   const names = packed.files.map((file) => file.path)
-  for (const required of ["dist/main.js", "dist/domain/docs/template.js", "docs/MEMBERS.md", ".cursor/skills/kunlun-doc/SKILL.md"]) {
+  for (const required of ["dist/main.js", "dist/domain/docs/template.js", "README.md", "skills/kunlun-doc/SKILL.md", "skills/kunlun-shared/SKILL.md"]) {
     assert.ok(names.includes(required), `安装包缺少 ${required}`)
   }
   for (const name of names) {
-    const allowed = name === "package.json" || name === "README.md" || name === "ARCHITECTURE.md"
-      || name === "可行性分析与开发计划.md" || /^dist\/.+\.js$/.test(name)
-      || /^docs\/[^/]+\.md$/.test(name)
-      || /^\.cursor\/skills\/.+\.md$/.test(name)
+    const allowed = name === "package.json" || name === "README.md" || /^dist\/.+\.js$/.test(name)
+      || /^skills\/.+\.md$/.test(name)
     assert.ok(allowed, `安装包包含未允许的文件：${name}`)
     assert.ok(!name.includes(".test.") && !/(^|\/)(app-secret|user-session\.json|bot-token\.json|config\.json)$/.test(name), `安装包混入测试或凭证：${name}`)
     assert.ok(!name.endsWith("/bundled.js"), "统一包不能含旧内置凭证模块")

@@ -1,18 +1,24 @@
 {
-  "name": "kunlun-cli",
+  "name": "@lvshrd/kunlun-cli",
   "version": "0.1.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "description": "让 AI 通过昆仑智联开放平台替你处理文档等办公操作",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lvshrd/kunlun_cli.git"
+  },
+  "homepage": "https://github.com/lvshrd/kunlun_cli#readme",
+  "bugs": "https://github.com/lvshrd/kunlun_cli/issues",
   "bin": {
     "kunlun": "./dist/main.js"
   },
   "files": [
     "dist/**/*.js",
-    "docs/*.md",
-    ".cursor/skills/**/*.md",
-    "ARCHITECTURE.md",
-    "可行性分析与开发计划.md"
+    "skills/**/*.md"
   ],
   "scripts": {
     "start": "node src/main.ts",
@@ -22,8 +28,7 @@
     "prepack": "npm run build",
     "package": "node scripts/package.mjs",
     "install:local": "npm run package && powershell.exe -NoProfile -ExecutionPolicy Bypass -File release/install.ps1",
-    "test:package": "node scripts/test-package.mjs",
-    "sandbox": "node scripts/sandbox.mjs"
+    "test:package": "node scripts/test-package.mjs"
   },
   "engines": {
     "node": ">=22.18"

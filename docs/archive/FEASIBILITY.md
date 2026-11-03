@@ -1,13 +1,13 @@
 # kunlun_cli 可行性分析与开发计划
 
-- 文档状态：早期调研与历史方案；当前执行计划见 [开发路线](docs/ROADMAP.md)
+- 文档状态：早期调研与历史方案；当前执行计划见 [开发路线](../ROADMAP.md)
 - 编写日期：2026-10-13
 - 状态更新：2026-10-21
 - 对照对象：飞书官方 CLI [larksuite/cli](https://github.com/larksuite/cli)（本机已安装 `lark-cli` 1.0.97），以及内部说明 [飞书 CLI 知识库](https://bytedance.larkoffice.com/wiki/ILuTww7Xcimb6GkhH0mcK2f4nS7)
 - 目标平台：昆仑智联私有化开放平台 [开发文档](https://open.fklzl.cnpc.com.cn/document/home/index)
-- 当前结论：已用 TypeScript / Node.js 实现用户授权、通用 API、文档创建 / 追加 / 读取及 Agent Skill；近期优先完善操作文档能力和“小惠”成员试点，实测范围见 [验收记录](docs/ACCEPTANCE.md)。
+- 当前结论：已用 TypeScript / Node.js 实现用户授权、通用 API、文档创建 / 追加 / 读取及 Agent Skill；近期优先完善操作文档能力和“小惠”成员试点，实测范围见 [验收记录](../ACCEPTANCE.md)。
 
-下文保留 2026-10-13 的平台调研和初始估算。Go 单二进制、系统凭据库、写入确认门禁及跨办公域计划均为当时设想，不代表已实现；当前架构以 [ARCHITECTURE.md](ARCHITECTURE.md) 为准，使用步骤以 [README](README.md) 为准。
+下文保留 2026-10-13 的平台调研和初始估算。Go 单二进制、系统凭据库、写入确认门禁及跨办公域计划均为当时设想，不代表已实现；当前架构以 [ARCHITECTURE.md](../../ARCHITECTURE.md) 为准，使用步骤以 [README](../../README.md) 为准。
 
 内部知识库页面位于字节跳动租户，当前环境无法读取正文。下文对飞书 CLI 的描述以公开仓库、本机 `lark-cli 1.0.97` 的帮助信息和源码为准，与该知识库介绍的是同一套程序。
 
@@ -401,7 +401,7 @@ M3 验收：
 2. 明确部门允许的 App Secret 管理方式；若不能在同事电脑上保存应用密钥，优先设计托管授权方案。
 3. 完善列表和代码块的 Markdown 转换，用一篇真实操作手册验收。
 4. 补齐网络中断后的结果核对与恢复，随后再做章节修改、表格和截图。
-5. 其他办公域按实际需求扩展，详见 [开发路线](docs/ROADMAP.md)。
+5. 其他办公域按实际需求扩展，详见 [开发路线](../ROADMAP.md)。
 
 ---
 

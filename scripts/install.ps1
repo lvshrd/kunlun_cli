@@ -12,7 +12,7 @@ $OutputEncoding = [Console]::OutputEncoding
 try {
     if (-not $PackagePath) {
         $release = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'release.json') -Raw | ConvertFrom-Json
-        if ($release.package -notmatch '^kunlun-cli-[0-9A-Za-z.+-]+\.tgz$') { throw 'Invalid release package name.' }
+        if ($release.package -notmatch '^(lvshrd-)?kunlun-cli-[0-9A-Za-z.+-]+\.tgz$') { throw 'Invalid release package name.' }
         $PackagePath = Join-Path $PSScriptRoot $release.package
     }
     $archive = (Resolve-Path -LiteralPath $PackagePath).Path

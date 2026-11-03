@@ -1,5 +1,20 @@
 # 验收记录与复验步骤
 
+## 2026-11-03：scoped npm 发布准备
+
+- 包名改为 @lvshrd/kunlun-cli，CLI 入口仍为 kunlun；移除 private 标记并固定 public / registry。README 与 Skill 统一 npm 安装更新，旧 unscoped 包迁移保留配置。
+- Windows 安装器识别 scoped tgz；验包通过 manifest 默认入口安装，核验实际 scoped 目录、包名和公开配置，确认包中没有开发依赖和 lifecycle 脚本。
+- 57 项测试、类型检查、23 个本地 Markdown 链接、scoped 包离线安装与重复更新验收通过。tgz 为 39 个文件、31568 字节；npm publish --dry-run 通过。
+- npm 身份为 lvshrd，账号 2FA 为 false。正式 publish 返回 E403，要求双重验证或符合要求的发布凭证；没有发布成功，也尚未执行 registry 下载验收。后续须在本人完成账号验证后重试，不能把 dry-run 当作发布成功。
+
+## 2026-11-02：目录与分发内容整理
+
+- 沿用用户将 Skill 移至根目录 skills 的调整，同步运行时加载与打包白名单；安装后的 Skill 复制流程通过隔离验收。
+- 用户说明合并到 README，维护与人工试用合并到 DEVELOPMENT，产品规划与路线合并到 ROADMAP；早期探活分析移至 archive，历史验收保留。
+- 删除两个临时 OAuth 调试脚本及 sandbox 生成脚本，保留六个构建、交付、安装和验包脚本；原有试用凭证目录不动。
+- 57 项测试、类型检查、Windows 隔离包验收通过，23 个本地 Markdown 链接核对通过。生成 tgz 共 39 个文件、约 31 KB，仅包含编译程序、package.json、README 和 skills。
+- 未发布到 registry；当前 private 标记、同名包发布权及 npm 登录仍需处理。本地生成和安装验收不代表公共发布已完成。
+
 ## 2026-11-02：Mac 搜索提交与 Windows 修复整合
 
 - 在远端搜索提交 7e70511 之后重放本地安装器与读取修复，保留搜索、名称定位、原有安全检查和读取诊断。
@@ -65,7 +80,7 @@
 - 清理旧试验发行包，构建前清理 dist，打包检查拒绝旧 bundled.js。
 - 提供 npm run sandbox，在本机保留独立程序 prefix、npm 缓存、配置与工作目录供用户亲自完成真实授权和云端试用。
 
-本次自动化不执行真实浏览器授权，不操作云端业务文档；仍沿用下文已完成的文档读写实测证据。新环境中的本人授权与真实试用步骤见 [TRYOUT.md](TRYOUT.md)。
+本次自动化不执行真实浏览器授权，不操作云端业务文档；仍沿用下文已完成的文档读写实测证据。新环境中的本人授权与真实试用步骤见 [开发指南](DEVELOPMENT.md#独立真实试用)。
 
 ## 2026-10-23：0.1.2 默认应用、Agent 接入与编辑
 
@@ -79,7 +94,7 @@
 
 部门包将真实默认应用仅注入临时打包目录中的 JS，通用包、源码和仓库 dist 不含真实内置凭证。两类包均不包含维护者用户 token。内置 Secret 可提取，应用成员范围不能保证持包非成员完全无法使用应用凭证；未对非成员账号进行越权探测。
 
-仍需选择真实部门同事，在独立电脑通过其 Agent 完成本人授权和文档任务。该多人环境验收不由本机安装与模拟凭证测试替代。用户入口分为 [成员](MEMBERS.md)、[维护者](MAINTAINER.md)、[外部使用者](EXTERNAL.md)。
+仍需选择真实部门同事，在独立电脑通过其 Agent 完成本人授权和文档任务。该多人环境验收不由本机安装与模拟凭证测试替代。现行使用说明见 [README](../README.md)，维护流程见 [开发指南](DEVELOPMENT.md)。
 
 ## 2026-10-22：0.1.1 部门分发 MVP
 
@@ -138,40 +153,4 @@
 
 其他同事首次接入、不同账号之间的隔离、独立电脑安装、bot 文档写入、指定目录、超过 50 块的真实批次写入、大文档分页完整性、并发追加、复杂 Markdown，以及“小惠”聊天入口均未纳入本轮实测。单元测试中的分页和批次逻辑覆盖不等于这些场景已在真实环境通过。
 
-## 如何复验
-
-从项目根目录执行。安装、应用配置和本人授权步骤见 [README](../README.md)。
-
-```powershell
-npm test
-node node_modules/typescript/bin/tsc --noEmit
-node src/main.ts auth status
-node src/main.ts docs template --output .\复验草稿.md
-node src/main.ts docs create --title "CLI 复验文档" --file .\复验草稿.md --dry-run
-node src/main.ts docs create --title "CLI 复验文档" --file .\复验草稿.md
-```
-
-确认创建成功后，复制返回的 `data.document_id`，替换下方的 `复验文档ID`：
-
-```powershell
-node src/main.ts docs read --document "复验文档ID"
-node src/main.ts docs append --document "复验文档ID" --content "复验追加段落。" --dry-run
-node src/main.ts docs append --document "复验文档ID" --content "复验追加段落。"
-node src/main.ts docs read --document "复验文档ID"
-```
-
-人工核对：正文与示例文件一致；追加段落位于末尾且只出现一次；云空间可找到文档。读取的 `block_count` 含文档根块，不能直接等同于创建或追加结果中的正文块数量。
-
-若失败，记录失败步骤、时间、脱敏错误 JSON，以及读回后确认的实际内容。保留已创建文档的 ID，先核对再恢复；不能盲目重跑写入。复验会真实创建文档，不属于离线自动化测试。
-
-## 部门试点验收
-
-后续至少选择一位非维护者同事，使用独立系统账号或电脑完成 README 同事指南。验收应确认：
-
-1. 同事已在应用可用范围中，由维护者按批准方式完成应用配置。
-2. 同事用本人浏览器账号授权，`auth status` 显示本人身份及文档 scope。
-3. 用示例文件完成预览、创建、读取、追加，文档归属与访问范围符合预期。
-4. 维护者和同事的登录态相互独立；分享文档仍通过云文档分享权限配置。
-5. 同事能够凭 README 处理基础权限错误，并提供不含密钥的故障信息。
-
-完成后在本文件另增日期、运行环境和结果；在此之前不将单人实测描述为部门推广验收通过。
+现行复验及部门试点步骤统一见 [开发指南](DEVELOPMENT.md#独立真实试用)。以上历史记录中的命令仅描述当时状态。

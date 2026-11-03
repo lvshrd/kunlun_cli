@@ -10,7 +10,7 @@ const names = ["kunlun-shared", "kunlun-doc"]
 
 export function installSkills(directory: string, force = false, dryRun = false): string[] {
   const root = path.resolve(directory)
-  const source = fileURLToPath(new URL("../../../.cursor/skills/", import.meta.url))
+  const source = fileURLToPath(new URL("../../../skills/", import.meta.url))
   const destinations = names.map((name) => path.join(root, name))
   for (const destination of destinations) {
     if (existsSync(destination) && (lstatSync(destination).isSymbolicLink() || !force)) {

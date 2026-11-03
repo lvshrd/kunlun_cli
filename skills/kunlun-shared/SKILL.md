@@ -7,6 +7,8 @@ description: "通过本机 kunlun CLI 操作昆仑智联私有化环境时使用
 
 已全局安装时用 `kunlun`，PowerShell 若阻止 ps1 用 `kunlun.cmd`；不要依赖安装包中不存在的 src 路径。源码开发才使用 `node src/main.ts`。
 
+用户要求安装或更新时使用 `npm install --global @lvshrd/kunlun-cli@latest`；有自定义 npm prefix 时沿用原位置，旧的无 scope 包须按 README 迁移，不用 --force 覆盖未知入口。核验实际命令路径与 --version。程序更新保留配置；新增权限重新授权，Skill 副本备份后用 skills install --dir <实际目录> --force 同步。不要在日常业务任务中擅自升级程序。
+
 ## 本人身份和登录
 
 - 默认 user。操作用户自己的文档不要自动改成 bot 来绕过权限错误。

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs"
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, copyFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { createHash } from "node:crypto"
@@ -45,9 +45,9 @@ function ok(args, input) {
   return payload.data
 }
 
-function installWindows(archive) {
-  return spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path.join(projectRoot, "scripts/install.ps1"),
-    "-PackagePath", archive, "-InstallDir", prefix, "-NoPersistPath"], {
+function installWindows(archive, useManifest = false) {
+  return spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path.join(temporary, "install.ps1"),
+    ...(useManifest ? [] : ["-PackagePath", archive]), "-InstallDir", prefix, "-NoPersistPath"], {
     cwd: work, env, encoding: "utf8", timeout: 120_000, windowsHide: true,
   })
 }
@@ -65,6 +65,8 @@ try {
   const packed = packProject(temporary)
   const beforeUserPath = process.platform === "win32" ? userPath() : undefined
   if (process.platform === "win32") {
+    copyFileSync(path.join(projectRoot, "scripts/install.ps1"), path.join(temporary, "install.ps1"))
+    writeFileSync(path.join(temporary, "release.json"), JSON.stringify({ package: packed.filename }))
     writeFileSync(packed.path + ".sha256", "0".repeat(64) + "  " + packed.filename)
     const rejected = installWindows(packed.path)
     assert.ifError(rejected.error)
@@ -72,13 +74,22 @@ try {
     assert.equal(existsSync(prefix), false, "校验失败不得开始安装")
     const checksum = createHash("sha256").update(readFileSync(packed.path)).digest("hex")
     writeFileSync(packed.path + ".sha256", `${checksum}  ${packed.filename}\n`)
-    const installed = installWindows(packed.path)
+    const installed = installWindows(packed.path, true)
     assert.ifError(installed.error)
     assert.equal(installed.status, 0, installed.stdout + installed.stderr)
   } else {
     runNpm(["install", "--global", "--prefix", prefix, packed.path, "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "--update-notifier=false"], { env })
   }
   steps.push("安装包无运行时依赖，使用空 npm 缓存离线全局安装成功")
+  const packageRoot = path.join(prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", ...manifest.name.split("/"))
+  const installedManifest = JSON.parse(readFileSync(path.join(packageRoot, "package.json"), "utf8"))
+  assert.equal(installedManifest.name, "@lvshrd/kunlun-cli")
+  assert.equal(installedManifest.version, manifest.version)
+  assert.equal(installedManifest.private, undefined)
+  assert.equal(installedManifest.publishConfig.access, "public")
+  assert.equal(installedManifest.scripts, undefined)
+  assert.equal(installedManifest.devDependencies, undefined)
+  steps.push("scoped 包名、公开发布配置及安装 manifest 验证成功，Windows 默认 manifest 入口可识别 scoped tgz")
   assert.equal(ok(["--version"]).version, manifest.version)
   const help = invoke(["--help"])
   assert.equal(help.status, 0)
@@ -141,10 +152,11 @@ try {
   if (process.platform === "win32") {
     const protectedFiles = ["config.json", "app-secret", "user-session.json", "bot-token.json"]
     const before = protectedFiles.map((file) => readFileSync(path.join(env.KUNLUN_CONFIG_DIR, file), "utf8"))
-    const installedMain = path.join(prefix, "node_modules/kunlun-cli/dist/main.js")
+    const installedPackage = path.join(prefix, "node_modules", ...manifest.name.split("/"))
+    const installedMain = path.join(installedPackage, "dist/main.js")
     const original = readFileSync(installedMain, "utf8")
     writeFileSync(installedMain, original + "\n// old installation marker\n")
-    const obsolete = path.join(prefix, "node_modules/kunlun-cli/obsolete-test-file")
+    const obsolete = path.join(installedPackage, "obsolete-test-file")
     writeFileSync(obsolete, "old release")
     const updated = installWindows(packed.path)
     assert.ifError(updated.error)
