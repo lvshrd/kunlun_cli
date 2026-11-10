@@ -1,6 +1,6 @@
 # 架构
 
-本机 Agent 通过 Shell 调用 kunlun CLI；CLI 管理配置、凭证和业务动作，以 JSON 返回结果。用户身份与 bot 身份分开，业务默认本人身份。当前没有“小惠”聊天执行入口或多用户托管服务。
+本机 Agent 通过 Shell 调用 kunlun-cli；CLI 管理配置、凭证和业务动作，以 JSON 返回结果。用户身份与 bot 身份分开，业务默认本人身份。当前没有“小惠”聊天执行入口或多用户托管服务。
 
 ```text
 Agent + 已安装的 Skill

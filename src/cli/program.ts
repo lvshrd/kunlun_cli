@@ -14,9 +14,10 @@ export async function run(argv: string[]): Promise<number> {
     }
     const routes = allRoutes()
     if (parsed.positionals.length === 0 || parsed.positionals[0] === "help" || boolFlag(parsed.flags, "help")) {
-      const prefix = parsed.positionals.join(" ")
+      const prefix = (parsed.positionals[0] === "help" ? parsed.positionals.slice(1) : parsed.positionals).join(" ")
       const related = routes.filter((route) => route.path.join(" ") === prefix || route.path.join(" ").startsWith(`${prefix} `))
-      process.stdout.write(formatHelp(prefix && related.length ? related : routes))
+      if (prefix && related.length === 0) throw new CliError("usage", `未知命令：${prefix}`, "运行 kunlun-cli --help 查看命令")
+      process.stdout.write(formatHelp(prefix ? related : routes))
       return 0
     }
     const matched = matchRoute(routes, parsed.positionals)
@@ -28,7 +29,7 @@ export async function run(argv: string[]): Promise<number> {
         process.stdout.write(formatHelp(related))
         return 0
       }
-      throw new CliError("usage", `未知命令：${prefix}`, "运行 kunlun help 查看命令")
+      throw new CliError("usage", `未知命令：${prefix}`, "运行 kunlun-cli help 查看命令")
     }
     await matched.route.run({ flags: parsed.flags, rest: matched.rest })
     return 0
@@ -41,25 +42,26 @@ export async function run(argv: string[]): Promise<number> {
 export function formatHelp(routes: Route[]): string {
   const width = Math.max(...routes.map((route) => route.path.join(" ").length))
   const lines = [
-    `kunlun ${version}`,
+    `kunlun-cli ${version}`,
     "",
-    "用法：kunlun <命令> [参数]",
+    "用法：kunlun-cli <命令> [参数]",
     "",
     ...routes.map((route) => `  ${route.path.join(" ").padEnd(width)}  ${route.summary}`),
     "",
     "示例：",
-    "  kunlun skills install --dir .cursor/skills",
-    "  kunlun config init",
-    "  kunlun auth scopes",
-    "  kunlun auth login",
-    "  kunlun docs template --output .\\操作文档.md",
-    "  kunlun docs create --title 操作文档 --file .\\操作文档.md --dry-run",
-    "  kunlun docs create --title 操作文档 --file .\\操作文档.md",
-    "  kunlun docs read --document <document_id>",
-    "  kunlun docs search --query 操作规程",
-    "  kunlun docs read --name 完整文档标题",
+    "  kunlun-cli skills install --dir .cursor/skills",
+    "  kunlun-cli config init",
+    "  kunlun-cli auth scopes",
+    "  kunlun-cli auth login",
+    "  kunlun-cli docs template --output .\\操作文档.md",
+    "  kunlun-cli docs create --title 操作文档 --file .\\操作文档.md --dry-run",
+    "  kunlun-cli docs create --title 操作文档 --file .\\操作文档.md",
+    "  kunlun-cli docs read --document <document_id>",
+    "  kunlun-cli docs search --query 操作规程",
+    "  kunlun-cli docs read --name 完整文档标题",
     "",
-    "--version 查看版本；--help 查看帮助；长正文用 --file 传入 UTF-8 文件。",
+    "-v / --version 查看版本（也可用 version）；-h / --help 查看帮助（也可用 help [命令]）。",
+    "长正文用 --file 传入 UTF-8 文件。",
     "写入命令去掉 --dry-run 后会真实修改云端；配置和登录态保存在当前用户的 ~/.kunlun-cli。",
     "",
   ]

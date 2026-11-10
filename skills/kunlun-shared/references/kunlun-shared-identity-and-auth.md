@@ -4,9 +4,9 @@
 
 ## 应用来源
 
-配置优先级：环境变量 > 本机文件 > 昆仑端点默认值。统一 0.1.0 包不含任何默认 App ID、Secret 或用户登录态。用 `kunlun config show` 查看 App ID 和 secret_source，不展示实际 Secret。
+配置优先级：环境变量 > 本机文件 > 昆仑端点默认值。安装包不含任何默认 App ID、Secret 或用户登录态。用 `kunlun-cli config show` 查看 App ID 和 secret_source，不展示实际 Secret。
 
-- 本人终端执行 `kunlun config init`，输入 App ID，隐藏输入 Secret。
+- 本人终端执行 `kunlun-cli config init`，输入 App ID，隐藏输入 Secret。
 - 脚本使用 `config init --app-id ... --app-secret-stdin`；不使用 --app-secret 参数。
 - 更换应用时清除本机旧用户 / bot session；有多个应用时用独立配置目录。
 
@@ -15,9 +15,9 @@
 ## 本人授权
 
 ```powershell
-kunlun auth scopes
-kunlun auth login
-kunlun auth status
+kunlun-cli auth scopes
+kunlun-cli auth login
+kunlun-cli auth status
 ```
 
 默认登录使用版本固定的四项业务权限，准确清单以 `auth scopes` 为准；该命令不读取凭证或查询后台。维护者已确认四项一起请求可登录，业务 API 的可用性仍按各自验收记录判断。

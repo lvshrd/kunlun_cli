@@ -49,7 +49,7 @@ function validateInvocation(invocation: Invocation, command: string, allowed: st
   if (invocation.rest.length > 0) throw new CliError("usage", `auth ${command} 不接受额外参数`)
   const unknown = Object.keys(invocation.flags).filter((name) => !allowed.includes(name))
   if (unknown.length > 0) {
-    throw new CliError("usage", `auth ${command} 不支持参数：${unknown.map((name) => `--${name}`).join("、")}`, "运行 kunlun auth --help 查看用法。", {
+    throw new CliError("usage", `auth ${command} 不支持参数：${unknown.map((name) => `--${name}`).join("、")}`, "运行 kunlun-cli auth --help 查看用法。", {
       reason: "unsupported_flags", unsupported_flags: unknown,
     })
   }

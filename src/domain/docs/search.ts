@@ -71,7 +71,7 @@ export async function searchDocuments(api: OpenApi, token: string, input: Search
 
 export async function resolveDocumentByName(api: OpenApi, token: string, name: string): Promise<SearchItem & { document_id: string }> {
   const result = await searchDocuments(api, token, { query: name, limit: 50 })
-  const hint = "先运行 kunlun docs search --query <关键词> 查看候选，缩小范围或选定候选后用 docs read --document <ID>。"
+  const hint = "先运行 kunlun-cli docs search --query <关键词> 查看候选，缩小范围或选定候选后用 docs read --document <ID>。"
   // 第一页不能证明全局唯一；即使已出现一个同名结果，也不能直接选中。
   if (result.has_more) {
     throw new CliError("incomplete", "搜索还有更多结果，无法确认完整标题唯一，未读取正文", hint, result)

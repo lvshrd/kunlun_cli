@@ -36,7 +36,7 @@ try {
     # Use an explicit prefix: do not change the user's npm configuration or CLI credentials.
     & $npm install --global --prefix $target $archive --offline --ignore-scripts --no-audit --no-fund --update-notifier=false --loglevel=error
     if ($LASTEXITCODE -ne 0) { throw "npm installation failed (exit $LASTEXITCODE)." }
-    $command = Join-Path $target 'kunlun.cmd'
+    $command = Join-Path $target 'kunlun-cli.cmd'
     $versionOutput = & $command --version
     if ($LASTEXITCODE -ne 0) { throw 'Installed command failed its version check.' }
     $installed = $versionOutput | ConvertFrom-Json
@@ -81,7 +81,7 @@ namespace KunlunInstaller {
     $env:Path = $target + ';' + $env:Path
     # With an explicit extension PowerShell can return every matching application.
     # Validate the first PATH match, rather than comparing an array with one path.
-    $resolvedCommand = (Get-Command kunlun.cmd -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+    $resolvedCommand = (Get-Command kunlun-cli.cmd -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     if ($resolvedCommand -ine $command) { throw "Unexpected command on PATH: $resolvedCommand" }
     [ordered]@{
         ok = $true
@@ -90,7 +90,7 @@ namespace KunlunInstaller {
         command = $resolvedCommand
         user_path_added = $pathAdded
         path_persisted = (-not $NoPersistPath)
-        next = 'Restart CMD and your Agent application, then run: kunlun --version (PowerShell: kunlun.cmd --version).'
+        next = 'Restart CMD and your Agent application, then run: kunlun-cli --version (PowerShell: kunlun-cli.cmd --version).'
     } | ConvertTo-Json
 } catch {
     Write-Error $_ -ErrorAction Continue

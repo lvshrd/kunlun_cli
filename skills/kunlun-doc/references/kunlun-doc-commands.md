@@ -1,18 +1,18 @@
 # 文档命令参考
 
-安装后用 `kunlun`，源码开发才用 `node src/main.ts`。长正文使用 UTF-8 文件，`--file`、`--content`、`--stdin` 只能选一个。
+安装后用 `kunlun-cli`，源码开发才用 `node src/main.ts`。长正文使用 UTF-8 文件，`--file`、`--content`、`--stdin` 只能选一个。
 
 | 任务 | 命令 |
 | --- | --- |
-| 本地模板 | `kunlun docs template --output ./草稿.md`，不覆盖已有文件 |
-| 创建预览 | `kunlun docs create --title "标题" --file ./草稿.md --dry-run` |
+| 本地模板 | `kunlun-cli docs template --output ./草稿.md`，不覆盖已有文件 |
+| 创建预览 | `kunlun-cli docs create --title "标题" --file ./草稿.md --dry-run` |
 | 创建 | 上述命令去掉 --dry-run |
-| 搜索候选 | `kunlun docs search --query "关键词" [--limit 20] [--offset 0]`，仅 user |
-| 按完整标题读取 | `kunlun docs read --name "完整标题"`，完整候选中唯一匹配 docx 才读取 |
-| 读取 | `kunlun docs read --document <ID或docx链接>` |
+| 搜索候选 | `kunlun-cli docs search --query "关键词" [--limit 20] [--offset 0]`，仅 user |
+| 按完整标题读取 | `kunlun-cli docs read --name "完整标题"`，完整候选中唯一匹配 docx 才读取 |
+| 读取 | `kunlun-cli docs read --document <ID或docx链接>` |
 | 读取并查看原始块 | 上述命令加 `--raw`；默认仅返回文本、诊断和块关系 |
-| 追加 | `kunlun docs append --document <ID> --file ./补充.md`，支持 --dry-run |
-| 精确修改预览 | `kunlun docs edit --document <ID> --find "原文" --replace "新文" --dry-run` |
+| 追加 | `kunlun-cli docs append --document <ID> --file ./补充.md`，支持 --dry-run |
+| 精确修改预览 | `kunlun-cli docs edit --document <ID> --find "原文" --replace "新文" --dry-run` |
 | 执行修改 | 去掉 --dry-run，并传入预览返回的 `--revision <版本>` |
 
 创建和追加的预览只处理本地正文，不能证明权限可用。修改预览会读取云端定位文本，但不写入；修改执行用文档版本限制并发冲突。

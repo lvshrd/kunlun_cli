@@ -19,14 +19,14 @@ const oldBin = path.join(temporary, "旧安装目录")
 const oldShim = "@echo off\r\nexit /b 42\r\n"
 if (process.platform === "win32") {
   mkdirSync(oldBin)
-  writeFileSync(path.join(oldBin, "kunlun.cmd"), oldShim)
+  writeFileSync(path.join(oldBin, "kunlun-cli.cmd"), oldShim)
   const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") ?? "Path"
   env[pathKey] = oldBin + ";" + (env[pathKey] ?? "")
 }
 const steps = []
 
 function invoke(args, input) {
-  const shim = process.platform === "win32" ? path.join(prefix, "kunlun.cmd") : path.join(prefix, "bin", "kunlun")
+  const shim = process.platform === "win32" ? path.join(prefix, "kunlun-cli.cmd") : path.join(prefix, "bin", "kunlun-cli")
   const quote = (value) => `'${value.replace(/'/g, "''")}'`
   const command = process.platform === "win32" ? "powershell.exe" : shim
   const commandArgs = process.platform === "win32"
@@ -61,6 +61,22 @@ function userPath() {
   return result.stdout
 }
 
+// Build a minimal 0.1.0 of the same scoped package to exercise npm's real bin
+// migration, rather than manually deleting the old shim in the installer.
+function installLegacyCommand() {
+  const stage = path.join(temporary, "legacy")
+  mkdirSync(path.join(stage, "dist"), { recursive: true })
+  writeFileSync(path.join(stage, "package.json"), JSON.stringify({
+    name: manifest.name, version: "0.1.0", type: "module", bin: { kunlun: "dist/main.js" },
+  }))
+  writeFileSync(path.join(stage, "dist/main.js"), '#!/usr/bin/env node\nconsole.log(JSON.stringify({ok:true,data:{version:"0.1.0"}}))\n')
+  const [legacy] = JSON.parse(runNpm(["pack", "--json", "--ignore-scripts", "--pack-destination", temporary], { cwd: stage, env }))
+  runNpm(["install", "--global", "--prefix", prefix, path.join(temporary, legacy.filename), "--offline", "--ignore-scripts", "--no-audit", "--no-fund"], { env })
+  const bin = process.platform === "win32" ? prefix : path.join(prefix, "bin")
+  assert.equal(existsSync(path.join(bin, process.platform === "win32" ? "kunlun.cmd" : "kunlun")), true)
+  assert.equal(existsSync(path.join(bin, process.platform === "win32" ? "kunlun-cli.cmd" : "kunlun-cli")), false)
+}
+
 try {
   const packed = packProject(temporary)
   const beforeUserPath = process.platform === "win32" ? userPath() : undefined
@@ -78,7 +94,9 @@ try {
     assert.ifError(installed.error)
     assert.equal(installed.status, 0, installed.stdout + installed.stderr)
   } else {
+    installLegacyCommand()
     runNpm(["install", "--global", "--prefix", prefix, packed.path, "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "--update-notifier=false"], { env })
+    assert.equal(existsSync(path.join(prefix, "bin", "kunlun")), false, "升级应移除旧入口")
   }
   steps.push("安装包无运行时依赖，使用空 npm 缓存离线全局安装成功")
   const packageRoot = path.join(prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", ...manifest.name.split("/"))
@@ -89,13 +107,24 @@ try {
   assert.equal(installedManifest.publishConfig.access, "public")
   assert.equal(installedManifest.scripts, undefined)
   assert.equal(installedManifest.devDependencies, undefined)
+  assert.deepEqual(Object.keys(installedManifest.bin), ["kunlun-cli"])
+  assert.equal(path.resolve(packageRoot, installedManifest.bin["kunlun-cli"]), path.join(packageRoot, "dist/main.js"))
   steps.push("scoped 包名、公开发布配置及安装 manifest 验证成功，Windows 默认 manifest 入口可识别 scoped tgz")
   assert.equal(ok(["--version"]).version, manifest.version)
+  assert.equal(ok(["-v"]).version, manifest.version)
+  assert.equal(ok(["version"]).version, manifest.version)
   const help = invoke(["--help"])
   assert.equal(help.status, 0)
-  assert.match(help.stdout, /用法：kunlun/)
+  assert.match(help.stdout, /用法：kunlun-cli/)
   assert.doesNotMatch(help.stdout, /node src\/main\.ts/)
   assert.match(help.stdout, /docs search/)
+  for (const args of [["-h"], ["help"]]) assert.equal(invoke(args).stdout, help.stdout)
+  const docsHelp = invoke(["docs", "--help"])
+  for (const args of [["docs", "-h"], ["help", "docs"]]) {
+    const result = invoke(args)
+    assert.equal(result.status, 0)
+    assert.equal(result.stdout, docsHelp.stdout)
+  }
   const invalidSearch = invoke(["docs", "search", "--query", "规程", "--offset", "150", "--limit", "50"])
   assert.equal(invalidSearch.status, 1)
   assert.equal(JSON.parse(invalidSearch.stdout).error.type, "usage")
@@ -155,24 +184,28 @@ try {
     const installedPackage = path.join(prefix, "node_modules", ...manifest.name.split("/"))
     const installedMain = path.join(installedPackage, "dist/main.js")
     const original = readFileSync(installedMain, "utf8")
+    installLegacyCommand()
     writeFileSync(installedMain, original + "\n// old installation marker\n")
     const obsolete = path.join(installedPackage, "obsolete-test-file")
     writeFileSync(obsolete, "old release")
     const updated = installWindows(packed.path)
     assert.ifError(updated.error)
     assert.equal(updated.status, 0, updated.stdout + updated.stderr)
-    assert.equal(readFileSync(installedMain, "utf8"), original, "同版本重复安装应覆盖程序文件")
+    assert.equal(readFileSync(installedMain, "utf8"), original, "升级应覆盖旧程序文件")
     assert.equal(existsSync(obsolete), false, "覆盖安装应移除旧包残留")
+    for (const legacyShim of ["kunlun", "kunlun.cmd", "kunlun.ps1"]) {
+      assert.equal(existsSync(path.join(prefix, legacyShim)), false, "同一 scoped 包升级应移除旧命令入口")
+    }
     protectedFiles.forEach((file, index) => assert.equal(readFileSync(path.join(env.KUNLUN_CONFIG_DIR, file), "utf8"), before[index]))
     assert.equal(userPath(), beforeUserPath, "隔离验收不能修改真实用户 PATH")
-    assert.equal(readFileSync(path.join(oldBin, "kunlun.cmd"), "utf8"), oldShim, "保留其他 PATH 目录中的旧安装")
+    assert.equal(readFileSync(path.join(oldBin, "kunlun-cli.cmd"), "utf8"), oldShim, "保留其他 PATH 目录中的旧安装")
     const commandEnv = Object.fromEntries(Object.entries(env).filter(([key]) => key.toLowerCase() !== "path"))
     commandEnv.Path = prefix + ";" + (Object.entries(env).find(([key]) => key.toLowerCase() === "path")?.[1] ?? "")
-    const global = spawnSync("cmd.exe", ["/d", "/c", "kunlun --version"], { cwd: work, env: commandEnv, encoding: "utf8", timeout: 30_000, windowsHide: true })
+    const global = spawnSync("cmd.exe", ["/d", "/c", "kunlun-cli --version"], { cwd: work, env: commandEnv, encoding: "utf8", timeout: 30_000, windowsHide: true })
     assert.ifError(global.error)
     assert.equal(global.status, 0, global.stderr)
     assert.equal(JSON.parse(global.stdout).data.version, manifest.version)
-    steps.push("Windows 安装器校验哈希、同版本覆盖更新、清理旧包文件；多个 PATH 安装共存时验证首个命令，保留旧安装、配置和登录态，CMD 从 PATH 执行成功")
+    steps.push("Windows 从 0.1.0 kunlun 升级到 kunlun-cli：清理旧 shim 和残留，保留配置和登录态；多个 PATH 安装共存时首个命令执行成功")
   }
   ok(["config", "init", "--app-id", "cli_other", "--app-secret-stdin"], "other-test-secret\n")
   assert.equal(ok(["config", "show"]).app_id, "cli_other")

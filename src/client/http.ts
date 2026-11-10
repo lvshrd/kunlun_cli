@@ -1,6 +1,7 @@
 import { CliError } from "../errors.ts"
 import { isRecord, num, str } from "../json.ts"
 import { supportedUserScopes } from "../auth/scopes.ts"
+import { version } from "../version.ts"
 
 export interface CallRequest {
   method: string
@@ -25,7 +26,7 @@ export class KunlunClient implements OpenApi {
 
   async call(request: CallRequest): Promise<unknown> {
     const url = this.resolve(request.path, request.query)
-    const headers: Record<string, string> = { "User-Agent": "kunlun-cli/0.1" }
+    const headers: Record<string, string> = { "User-Agent": `kunlun-cli/${version}` }
     if (request.token) headers.Authorization = `Bearer ${request.token}`
     let body: string | undefined
     if (request.body !== undefined) {
@@ -83,12 +84,12 @@ function permissionHint(body: unknown): string | undefined {
       .map((item) => isRecord(item) ? str(item.subject) : undefined)
       .filter((scope): scope is string => Boolean(scope && /^[a-zA-Z0-9_:.-]+$/.test(scope))))]
     if (scopes.some((scope) => supportedUserScopes.includes(scope))) {
-      return "用户授权不足，接口返回的候选权限包含本版本支持项。确认应用后台的用户身份权限已生效后，可运行 kunlun auth login 按本版本固定权限重新授权；若仍失败，停止重试并联系维护者核实权限组合。不要照抄上游 scope 扩大授权，刷新 token 不会自动增加授权范围。"
+      return "用户授权不足，接口返回的候选权限包含本版本支持项。确认应用后台的用户身份权限已生效后，可运行 kunlun-cli auth login 按本版本固定权限重新授权；若仍失败，停止重试并联系维护者核实权限组合。不要照抄上游 scope 扩大授权，刷新 token 不会自动增加授权范围。"
     }
-    return "无法从接口返回的权限中确认本版本支持项。运行 kunlun auth scopes 查看版本权限，联系维护者核实接口及权限并在需要时发布新版；不要猜测 scope 或反复重新授权。"
+    return "无法从接口返回的权限中确认本版本支持项。运行 kunlun-cli auth scopes 查看版本权限，联系维护者核实接口及权限并在需要时发布新版；不要猜测 scope 或反复重新授权。"
   }
   if (body.code === 99991672) {
-    return "应用缺少接口权限。请由维护者在昆仑开发者后台检查当前调用身份对应的权限，并确认权限已生效；需审核的权限须发布版本并审核通过。需要新增权限时同步更新 CLI release，生效后再运行 kunlun auth login；不要临时追加 scope 或反复重试授权。"
+    return "应用缺少接口权限。请由维护者在昆仑开发者后台检查当前调用身份对应的权限，并确认权限已生效；需审核的权限须发布版本并审核通过。需要新增权限时同步更新 CLI release，生效后再运行 kunlun-cli auth login；不要临时追加 scope 或反复重试授权。"
   }
   return undefined
 }

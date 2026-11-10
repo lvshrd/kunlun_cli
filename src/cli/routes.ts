@@ -7,6 +7,7 @@ import { doctorRoutes } from "./commands/doctor.ts"
 import { docsRoutes } from "./commands/docs.ts"
 import { skillsRoutes } from "./commands/skills.ts"
 import type { Route } from "./route.ts"
+import { CliError } from "../errors.ts"
 
 export function allRoutes(): Route[] {
   return [
@@ -19,7 +20,8 @@ export function allRoutes(): Route[] {
     {
       path: ["version"],
       summary: "显示版本",
-      run: async () => {
+      run: async (invocation) => {
+        if (invocation.rest.length || Object.keys(invocation.flags).length) throw new CliError("usage", "version 不接受额外参数", "运行 kunlun-cli -v 或 kunlun-cli --version 查看版本")
         printOk({ version })
       },
     },

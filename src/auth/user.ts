@@ -54,11 +54,11 @@ export function parseTokenBundle(body: unknown): TokenBundle {
 export async function getUserToken(dir: string, api: OpenApi, config: Config, secret: string): Promise<string> {
   const session = loadUserSession(dir)
   if (!session?.accessToken) {
-    throw new CliError("auth", "尚未以用户身份登录", "先运行 kunlun auth login，并在浏览器里完成昆仑智联授权")
+    throw new CliError("auth", "尚未以用户身份登录", "先运行 kunlun-cli auth login，并在浏览器里完成昆仑智联授权")
   }
   if (isFresh(session.expiresAt)) return session.accessToken
   if (!session.refreshToken || (session.refreshExpiresAt > 0 && session.refreshExpiresAt <= Date.now())) {
-    throw new CliError("auth", "用户登录已过期", "重新运行 kunlun auth login")
+    throw new CliError("auth", "用户登录已过期", "重新运行 kunlun-cli auth login")
   }
   const bundle = await exchangeRefreshToken(api, config, secret, session.refreshToken)
   const next = sessionFromBundle(bundle, session.name, session.openId)
@@ -74,7 +74,7 @@ export async function loginUser(
   options: { openBrowser?: boolean; scope?: string } = {},
 ): Promise<UserSession> {
   if (!config.appId || !secret) {
-    throw new CliError("config", "尚未配置应用", "运行 kunlun config init")
+    throw new CliError("config", "尚未配置应用", "运行 kunlun-cli config init")
   }
   const redirect = new URL(config.redirectUrl)
   const state = newState()
@@ -152,7 +152,7 @@ function waitForCode(redirect: URL, state: string, authorizeUrl: string, autoOpe
     })
     const timer = setTimeout(() => {
       cleanup()
-      reject(new CliError("auth", "等待授权超时", "重新运行 kunlun auth login"))
+      reject(new CliError("auth", "等待授权超时", "重新运行 kunlun-cli auth login"))
     }, 180_000)
     const cleanup = () => {
       clearTimeout(timer)
@@ -169,10 +169,10 @@ function waitForCode(redirect: URL, state: string, authorizeUrl: string, autoOpe
       if (shouldOpenBrowser(autoOpenBrowser)) {
         const opened = openBrowser(authorizeUrl)
         if (!opened) {
-          console.error("[kunlun] 未能自动打开浏览器，请手动复制上面的链接。")
+          console.error("[kunlun-cli] 未能自动打开浏览器，请手动复制上面的链接。")
         }
       } else {
-        console.error("[kunlun] 已跳过自动打开浏览器（--no-browser、KUNLUN_NO_BROWSER=1 或 SSH 环境）。")
+        console.error("[kunlun-cli] 已跳过自动打开浏览器（--no-browser、KUNLUN_NO_BROWSER=1 或 SSH 环境）。")
       }
     })
   })
@@ -180,7 +180,7 @@ function waitForCode(redirect: URL, state: string, authorizeUrl: string, autoOpe
 
 function respond(response: ServerResponse, status: number, text: string): void {
   response.writeHead(status, { "Content-Type": "text/html; charset=utf-8" })
-  response.end(`<!doctype html><meta charset="utf-8"><title>kunlun</title><p>${escapeHtml(text)}</p>`)
+  response.end(`<!doctype html><meta charset="utf-8"><title>kunlun-cli</title><p>${escapeHtml(text)}</p>`)
 }
 
 function escapeHtml(text: string): string {

@@ -17,7 +17,7 @@ async function callApi(invocation: Invocation): Promise<void> {
   const method = invocation.rest[0]?.toUpperCase()
   const apiPath = invocation.rest[1]
   if (!method || !apiPath || invocation.rest.length !== 2) {
-    throw new CliError("usage", "用法：kunlun api <METHOD> <path>", "例如 kunlun api GET /open-apis/authen/v1/user_info")
+    throw new CliError("usage", "用法：kunlun-cli api <METHOD> <path>", "例如 kunlun-cli api GET /open-apis/authen/v1/user_info")
   }
   if (!["GET", "POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     throw new CliError("usage", `不支持的 HTTP 方法 ${method}`)

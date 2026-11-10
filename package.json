@@ -1,6 +1,6 @@
 {
   "name": "@lvshrd/kunlun-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
@@ -14,7 +14,7 @@
   "homepage": "https://github.com/lvshrd/kunlun_cli#readme",
   "bugs": "https://github.com/lvshrd/kunlun_cli/issues",
   "bin": {
-    "kunlun": "./dist/main.js"
+    "kunlun-cli": "./dist/main.js"
   },
   "files": [
     "dist/**/*.js",

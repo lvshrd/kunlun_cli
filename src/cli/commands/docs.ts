@@ -30,7 +30,7 @@ async function edit(invocation: Invocation): Promise<void> {
   const document = strFlag(invocation.flags, "document")
   const find = strFlag(invocation.flags, "find")
   const replacement = strFlag(invocation.flags, "replace")
-  if (!document || !find || !replacement || invocation.rest.length) throw new CliError("usage", "用法：kunlun docs edit --document <ID> --find <原文> --replace <新文> [--dry-run] [--revision <版本>]")
+  if (!document || !find || !replacement || invocation.rest.length) throw new CliError("usage", "用法：kunlun-cli docs edit --document <ID> --find <原文> --replace <新文> [--dry-run] [--revision <版本>]")
   const revisionValue = strFlag(invocation.flags, "revision")
   const revision = revisionValue === undefined ? undefined : Number(revisionValue)
   if (revision !== undefined && (!Number.isSafeInteger(revision) || revision < 0)) throw new CliError("usage", "--revision 必须是非负整数")
@@ -44,7 +44,7 @@ async function edit(invocation: Invocation): Promise<void> {
 async function template(invocation: Invocation): Promise<void> {
   if (invocation.rest.length > 0) throw new CliError("usage", "docs template 不接受位置参数")
   const output = strFlag(invocation.flags, "output")
-  if (!output) throw new CliError("usage", "缺少 --output", "例如 kunlun docs template --output ./操作文档.md")
+  if (!output) throw new CliError("usage", "缺少 --output", "例如 kunlun-cli docs template --output ./操作文档.md")
   const file = path.resolve(output)
   try {
     writeFileSync(file, documentTemplate, { encoding: "utf8", flag: "wx" })

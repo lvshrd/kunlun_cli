@@ -28,7 +28,7 @@ Secret 不写入包，不复制维护者 session。需要同事完全不接触�
 
 ```powershell
 $kunlunSecret = Read-Host 'App Secret' -AsSecureString
-[System.Net.NetworkCredential]::new('', $kunlunSecret).Password | kunlun.cmd config init --app-id cli_xxx --app-secret-stdin
+[System.Net.NetworkCredential]::new('', $kunlunSecret).Password | kunlun-cli.cmd config init --app-id cli_xxx --app-secret-stdin
 Remove-Variable kunlunSecret
 ```
 
@@ -44,17 +44,17 @@ $trialRoot = Join-Path $env:TEMP ('kunlun-trial-' + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $trialRoot | Out-Null
 $env:KUNLUN_CONFIG_DIR = Join-Path $trialRoot 'config'
 $env:npm_config_cache = Join-Path $trialRoot 'npm-cache'
-npm install --global --prefix $trialRoot ./release/lvshrd-kunlun-cli-0.1.0.tgz --offline --ignore-scripts --no-audit --no-fund
-& (Join-Path $trialRoot 'kunlun.cmd') config show
+npm install --global --prefix $trialRoot ./release/lvshrd-kunlun-cli-0.2.0.tgz --offline --ignore-scripts --no-audit --no-fund
+& (Join-Path $trialRoot 'kunlun-cli.cmd') config show
 ```
 
-macOS / Linux 使用相同的 npm prefix、独立 KUNLUN_CONFIG_DIR，入口位于 `<prefix>/bin/kunlun`。真实 Agent 也必须继承这些环境或显式使用对应配置和绝对入口。试用目录可能含真实凭证，不提交、不分发；关闭终端恢复日常环境，清理前确认目录用途。旧的 .kunlun-sandbox 目录仍可能保存凭证，不由本次代码整理自动删除。
+macOS / Linux 使用相同的 npm prefix、独立 KUNLUN_CONFIG_DIR，入口位于 `<prefix>/bin/kunlun-cli`。真实 Agent 也必须继承这些环境或显式使用对应配置和绝对入口。试用目录可能含真实凭证，不提交、不分发；关闭终端恢复日常环境，清理前确认目录用途。旧的 .kunlun-sandbox 目录仍可能保存凭证，不由本次代码整理自动删除。
 
 使用本人账号完成 config init、auth login/status，生成模板并预览后，在明确的测试文档完成创建、搜索定位、读取、追加、修改和读回。核对文本、追加次数、归属、完整性标记及并发版本冲突。失败保留文档 ID，先核对实际内容再恢复。至少一位非维护者在独立电脑通过 Agent 完成同一流程；把版本、环境、实际结果和限制记录到 [ACCEPTANCE](ACCEPTANCE.md)，不能用本地模拟替代平台实测。
 
 ## npm 发布
 
-公共包名为 @lvshrd/kunlun-cli，命令名为 kunlun；package.json 的 publishConfig 固定公共 registry 和 public 访问。没有 scope 的同名包不是本项目。仓库尚未指定开源许可证，发布不自动附加某个开源许可。
+公共包名为 @lvshrd/kunlun-cli，命令名为 kunlun-cli；package.json 的 publishConfig 固定公共 registry 和 public 访问。没有 scope 的同名包不是本项目。仓库尚未指定开源许可证，发布不自动附加某个开源许可。
 
 1. 本机 `npm login --registry=https://registry.npmjs.org/`，用 whoami 确认身份；不要在聊天提供 token。
 2. 每次更新递增 package.json、lockfile、src/version.ts 与 README 中的版本；用 `npm view @lvshrd/kunlun-cli versions --json` 确认未被发布过。

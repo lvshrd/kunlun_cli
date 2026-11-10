@@ -25,7 +25,7 @@ test("用户缺少文档授权时给出补充授权命令，保留上游诊断�
     () => client.call({ method: "GET", path: "/open-apis/docx/v1/documents/probe", token: "secret-token" }),
     (err: unknown) => {
       assert.ok(err instanceof CliError)
-      assert.match(err.hint ?? "", /kunlun auth login/)
+      assert.match(err.hint ?? "", /kunlun-cli auth login/)
       assert.doesNotMatch(err.hint ?? "", /--scope/)
       assert.match(err.hint ?? "", /用户身份权限/)
       assert.deepEqual(err.data, { http_status: 400, path: "/open-apis/docx/v1/documents/probe", upstream })
@@ -43,7 +43,7 @@ test("未知或缺失的权限诊断不生成重新登录或临时追加 scope �
     })))
     await assert.rejects(() => client.call({ method: "GET", path: "/open-apis/drive/probe" }), (err: unknown) => {
       assert.ok(err instanceof CliError)
-      assert.match(err.hint ?? "", /kunlun auth scopes/)
+      assert.match(err.hint ?? "", /kunlun-cli auth scopes/)
       assert.doesNotMatch(err.hint ?? "", /auth login|--scope/)
       return true
     })

@@ -12,10 +12,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const positionals: string[] = []
   const flags: Flags = {}
   for (let i = 0; i < argv.length; i++) {
-    const token = argv[i] ?? ""
+    let token = argv[i] ?? ""
     if (token === "--") {
       positionals.push(...argv.slice(i + 1))
       break
+    }
+    if (token === "-v") token = "--version"
+    else if (token === "-h") token = "--help"
+    else if (/^-[^-]/.test(token)) {
+      throw new CliError("usage", `不支持短参数 ${token}`, "查看版本用 -v / --version，查看帮助用 -h / --help；正文中的参数样式文本可使用 --content=<内容>。")
     }
     if (!token.startsWith("--")) {
       positionals.push(token)

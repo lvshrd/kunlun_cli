@@ -31,7 +31,7 @@ export function skillsRoutes(): Route[] {
 async function install(invocation: Invocation): Promise<void> {
   if (invocation.rest.length) throw new CliError("usage", "skills install 不接受位置参数")
   const directory = strFlag(invocation.flags, "dir")
-  if (!directory) throw new CliError("usage", "缺少 --dir", "例如 kunlun skills install --dir .cursor/skills")
+  if (!directory) throw new CliError("usage", "缺少 --dir", "例如 kunlun-cli skills install --dir .cursor/skills")
   const dryRun = boolFlag(invocation.flags, "dry-run")
   printOk({ dry_run: dryRun, directories: installSkills(directory, boolFlag(invocation.flags, "force"), dryRun), next: "重新打开 Agent 对话，要求使用 kunlun-doc 操作本人文档" })
 }

@@ -1,5 +1,19 @@
 # 验收记录与复验步骤
 
+## 2026-11-10：版本与帮助入口一致性
+
+- 补齐 -v / -h 短选项，分别映射到 --version / --help；保留 version、help 子命令以及无参数显示帮助。
+- help docs、docs -h、docs --help 返回同一组帮助；未知帮助目标、重复别名、未知短选项和 version 的额外参数返回 usage。
+- 59 项测试、类型检查及隔离安装包验收通过；安装后核验短/长参数及子命令。按 TODO 本机更新成功，独立入口 -v 返回 0.2.0，help docs 只列文档命令，四个已有配置/凭证文件摘要不变。
+- 本次仍属于待发布 0.2.0 的改动，未提交或发布 npm。
+
+## 2026-11-09：可执行命令改为 kunlun-cli
+
+- 0.2.0 的 npm bin 仅暴露 kunlun-cli；同步帮助、错误修复指令、Skill、README 和 Windows 安装器。npm 包名、默认配置目录及固定权限集合保持兼容。
+- 57 项测试和类型检查通过，包验收使用同 scoped 名称的 0.1.0 模拟旧包，验证升级移除 kunlun / kunlun.cmd / kunlun.ps1，生成新命令，保留配置、Secret 与 session，并清理包内旧文件。
+- 按 TODO 执行 npm run install:local 成功，本机独立入口返回 0.2.0。安装前后的四个已有配置/凭证文件摘要一致，用户 PATH 无新增项。本轮未访问昆仑业务接口，未发布 npm 新版本。
+- 后续优先实现研发任务计划表到 OKR 表的单向同步预览与去重闭环，资源类型和字段映射待实际表链接确认，见 ROADMAP。
+
 ## 2026-11-03：scoped npm 发布准备
 
 - 包名改为 @lvshrd/kunlun-cli，CLI 入口仍为 kunlun；移除 private 标记并固定 public / registry。README 与 Skill 统一 npm 安装更新，旧 unscoped 包迁移保留配置。
