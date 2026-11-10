@@ -3,8 +3,8 @@ import test from "node:test"
 import type { CallRequest, OpenApi } from "../client/http.ts"
 import { CliError } from "../errors.ts"
 import { resourceToken, readPages } from "./table-common.ts"
-import { parseRange, readRange, writeRange, validateValues } from "./sheets/service.ts"
-import { searchRecords, writeRecord, writeField } from "./bitable/service.ts"
+import { parseRange, readRange, writeRange, clearRange, validateValues } from "./sheets/service.ts"
+import { searchRecords, writeRecord, writeField, deleteResource } from "./bitable/service.ts"
 
 function mock(responses: unknown[]) {
   const calls: CallRequest[] = []
@@ -30,8 +30,8 @@ test("resource URLs are parsed without changing the API origin; wrong resource t
 test("ranges and cell matrices reject unbounded, reversed, oversized and rich-cell writes", () => {
   assert.equal(parseRange("sheet1!a1:b2").range, "sheet1!A1:B2")
   for (const range of ["sheet1!A:A", "sheet1!B2:A1", "sheet1!A0", "sheet1!A1:A5001", "sheet1!A1:CW1", "sheet1!A999999999999999999"]) assert.throws(() => parseRange(range))
-  for (const value of [[], [[1], [1, 2]], [[{ text: "rich" }]], [[Infinity]], [["a".repeat(50001)]]]) assert.throws(() => validateValues(value))
-  assert.deepEqual(validateValues([["=SUM(1,2)", 3, true, null]]), [["=SUM(1,2)", 3, true, null]])
+  for (const value of [[], [[1], [1, 2]], [[{ text: "rich" }]], [[true]], [[Infinity]], [["a".repeat(50001)]]]) assert.throws(() => validateValues(value))
+  assert.deepEqual(validateValues([["=SUM(1,2)", 3, null]]), [["=SUM(1,2)", 3, null]])
 })
 
 test("sheet reads use metadata type checks and the documented v2 Formula range endpoint", async () => {
@@ -156,9 +156,82 @@ test("Base updates send only supplied fields; failed verification retains the re
   assert.equal(result.verified, true)
   assert.equal(calls[1]?.method, "PUT")
   assert.deepEqual(calls[1]?.body, { fields: { Task: "New" } })
-  const failed = mock([record({ Task: "Old" }), record({ Task: "New" }), record({ Task: "Other" })])
+  const failed = mock([record({ Task: "Old" }), record({ Task: "New" }), record({ Task: "Other" }), { data: { items: [{ field_name: "Task", type: 1 }], has_more: false } }])
   await assert.rejects(() => writeRecord(failed.api, "token", "base1", "tbl1", { Task: "New" }, { recordId: "rec1" }), (err: unknown) => err instanceof CliError && err.type === "verification" && (err.data as Record<string, unknown>).record_id === "rec1")
   assert.equal(failed.calls.filter(c => c.method === "PUT").length, 1)
+})
+
+test("numeric read-back normalization requires a confirmed number field", async () => {
+  for (const [type, value, success] of [[2, "21", true], [1, "21", false], [2, "20", false], [2, "", false]] as const) {
+    const { api, calls } = mock([record({ Count: 21 }), record({ Count: value }), { data: { items: [{ field_name: "Count", type }], has_more: false } }])
+    if (success) {
+      const result = await writeRecord(api, "token", "base1", "tbl1", { Count: 21 })
+      assert.ok("verified" in result)
+      assert.equal(result.verified, true)
+      assert.deepEqual(result.numeric_normalizations, ["Count"])
+      assert.equal((result.read_back.fields as Record<string, unknown>).Count, "21", "raw API values remain available")
+    } else await assert.rejects(() => writeRecord(api, "token", "base1", "tbl1", { Count: 21 }), (err: unknown) => err instanceof CliError && err.type === "verification")
+    assert.equal(calls.length, 3)
+    assert.equal(calls[2]?.method, "GET")
+  }
+})
+
+test("only text runs can be compared to plain text; mentions are not flattened", async () => {
+  const success = mock([record({ Task: "Plan" }), record({ Task: [{ type: "text", text: "Pl" }, { type: "text", text: "an" }] })])
+  const result = await writeRecord(success.api, "token", "base1", "tbl1", { Task: "Plan" })
+  assert.ok("verified" in result)
+  assert.equal(result.verified, true)
+  const rejected = mock([record({ Task: "Plan" }), record({ Task: [{ type: "mention", text: "Plan" }] }), { data: { items: [{ field_name: "Task", type: 1 }], has_more: false } }])
+  await assert.rejects(() => writeRecord(rejected.api, "token", "base1", "tbl1", { Task: "Plan" }), (err: unknown) => err instanceof CliError && err.type === "verification")
+})
+
+test("clear writes empty strings, verifies blank cells and keeps the table structure", async () => {
+  const { api, calls } = mock([grid, cells([["Temporary", 1]]), { data: { updatedRange: "sheet1!A1:B1" } }, cells([[null, null]])])
+  const result = await clearRange(api, "token", "sht1", "sheet1!A1:B1")
+  assert.ok("verified" in result)
+  assert.equal(result.verified, true)
+  assert.equal(result.clears, "cell_contents_only")
+  assert.equal(result.action, "clear")
+  assert.deepEqual(calls[2]?.body, { valueRange: { range: "sheet1!A1:B1", values: [["", ""]] } })
+})
+
+test("record deletion verifies the exact not-found code and does not confuse permission or network failures with absence", async () => {
+  for (const mode of ["absent", "permission", "network", "still-present", "bad-ack"]) {
+    const error = mode === "network" ? new CliError("network", "timeout") : new CliError("api", "read failed", undefined, { upstream: { code: mode === "absent" ? 1254043 : 99991679 } })
+    const { api, calls } = mock([record({ Task: "Temporary" }), { data: { deleted: mode !== "bad-ack", record_id: "rec1" } }, mode === "still-present" ? record({ Task: "Temporary" }) : error])
+    if (mode === "absent") {
+      const result = await deleteResource(api, "token", "base1", "tbl1", "records", "rec1")
+      assert.ok("verified" in result)
+      assert.equal(result.verified, true)
+      assert.equal(result.deleted, true)
+    } else await assert.rejects(() => deleteResource(api, "token", "base1", "tbl1", "records", "rec1"), (err: unknown) => err instanceof CliError && err.type === "verification")
+    assert.equal(calls.filter(c => c.method === "DELETE").length, 1)
+    assert.equal(calls[1]?.path, "/open-apis/bitable/v1/apps/base1/tables/tbl1/records/rec1")
+    assert.equal(calls[1]?.body, undefined)
+  }
+})
+
+test("field deletion refuses primary fields and verifies the complete post-delete list", async () => {
+  const field = { field_id: "fld1", field_name: "Temporary", type: 1, is_primary: false }
+  const page = (items: unknown[]) => ({ data: { items, has_more: false } })
+  const { api, calls } = mock([page([field]), { data: { deleted: true, field_id: "fld1" } }, page([])])
+  const result = await deleteResource(api, "token", "base1", "tbl1", "fields", "fld1")
+  assert.ok("verified" in result)
+  assert.equal(result.verified, true)
+  assert.equal(calls[1]?.method, "DELETE")
+  const primary = mock([page([{ ...field, is_primary: true }])])
+  await assert.rejects(() => deleteResource(primary.api, "token", "base1", "tbl1", "fields", "fld1"), /primary field/)
+  assert.equal(primary.calls.length, 1)
+})
+
+test("delete previews are offline and a deletion timeout retains the target without a retry", async () => {
+  const offline = mock([])
+  assert.equal((await clearRange(offline.api, "", "sht1", "sheet1!A1", true)).dry_run, true)
+  assert.equal((await deleteResource(offline.api, "", "base1", "tbl1", "records", "rec1", true)).dry_run, true)
+  assert.equal((await deleteResource(offline.api, "", "base1", "tbl1", "fields", "fld1", true)).dry_run, true)
+  const { api, calls } = mock([record({ Task: "Temporary" }), new CliError("network", "timeout")])
+  await assert.rejects(() => deleteResource(api, "token", "base1", "tbl1", "records", "rec1"), (err: unknown) => err instanceof CliError && err.type === "write_unknown" && (err.data as Record<string, unknown>).record_id === "rec1")
+  assert.equal(calls.length, 2)
 })
 
 test("Base creation timeout retains its generated client token without retrying", async () => {

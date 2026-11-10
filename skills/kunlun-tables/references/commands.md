@@ -10,6 +10,7 @@ kunlun-cli sheets sheets --spreadsheet <token>
 kunlun-cli sheets read --spreadsheet <token> --range 'sheet1!A1:C20'
 kunlun-cli sheets write --spreadsheet <token> --range 'sheet1!A1:C1' --file cells.json --dry-run
 kunlun-cli sheets append --spreadsheet <token> --range 'sheet1!A1:C100' --file cells.json --dry-run
+kunlun-cli sheets clear --spreadsheet <token> --range 'sheet1!A3:C3' --dry-run
 ```
 
 cells.json 示例：
@@ -18,7 +19,7 @@ cells.json 示例：
 {"values":[["Task",3,{"type":"formula","text":"=B1*2"}]]}
 ```
 
-去掉 --dry-run 才实际执行。write 矩阵必须与范围尺寸相同；append 的列数相同、行数不超过范围，使用 INSERT_ROWS，按返回的实际插入范围读回。范围最多 5000 行、100 列；单字符串最多 50000 字符。支持字符串、有限数字、布尔值、null、公式对象；null 的处理受平台语义影响，不承诺它就是清空命令。公式使用官方对象格式，非字符串推断；跨表引用和富样式、人员提及、单元格图片未封装。read 使用 Formula 呈现，公式返回表达式，保留其它单元格原始 JSON。
+去掉 --dry-run 才实际执行。write 矩阵必须与范围尺寸相同；append 的列数相同、行数不超过范围，使用 INSERT_ROWS，按返回的实际插入范围读回。clear 只清空内容，不删除行列。范围最多 5000 行、100 列；单字符串最多 50000 字符。支持字符串、有限数字、null、公式对象；null 清空在本环境已实测，布尔值会被平台拒绝，CLI 提前拦截。公式使用官方对象格式，非字符串推断；跨表引用和富样式、人员提及、单元格图片未封装。read 使用 Formula 呈现，公式返回表达式，保留其它单元格原始 JSON。
 
 ## 多维表格
 
@@ -33,9 +34,13 @@ kunlun-cli bitable records create --app <token> --table <table_id> --file record
 kunlun-cli bitable records update --app <token> --table <table_id> --record <record_id> --file record.json --dry-run
 kunlun-cli bitable fields create --app <token> --table <table_id> --file field.json --dry-run
 kunlun-cli bitable fields update --app <token> --table <table_id> --field <field_id> --file field.json --dry-run
+kunlun-cli bitable records delete --app <token> --table <table_id> --record <record_id> --dry-run
+kunlun-cli bitable fields delete --app <token> --table <table_id> --field <field_id> --dry-run
 ```
 
 record.json 为 `{"fields":{"Task":"Plan","Progress":0.5}}`。字段必须是精确字段名，保留 API 对应的值类型；公式等只读字段不能赋值。create 可传 `--client-token <UUIDv4>`，默认生成并在结果中返回；update 不接受此参数。
+
+records delete 先读目标，删除后仅将明确的 RecordIdNotFound（1254043）当作不存在，不把权限或网络错误当作删除成功。fields delete 禁止主字段，删除后完整列出字段核对；删除字段会影响整列。两者支持离线 --dry-run，不自动重试。写入核对允许文本字段的 text runs；数字字符串只在字段 type=2 时按数值核对，输出 read_back 保留平台原始类型。
 
 field.json 为 `{"field_name":"Task","type":1}`；可提供平台定义的 property 对象、description 对象（text / disable_sync）。type 为平台字段类型整数，不作自动迁移。property / description 发送给平台校验，但当前只读回验证名称与类型。
 

@@ -27,6 +27,9 @@ test("table CLI validates before loading credentials and previews are completely
       [...sheets, "--json", '{"values":[["Task",1]]}', "--dry-run"],
       [...base, "--json", '{"fields":{"Task":"Plan"}}', "--dry-run"],
       ["bitable", "fields", "update", "--app", "base1", "--table", "tbl1", "--field", "fld1", "--json", '{"field_name":"Task","type":1}', "--dry-run"],
+      ["sheets", "clear", "--spreadsheet", "sht1", "--range", "sheet1!A1:B1", "--dry-run"],
+      ["bitable", "records", "delete", "--app", "base1", "--table", "tbl1", "--record", "rec1", "--dry-run"],
+      ["bitable", "fields", "delete", "--app", "base1", "--table", "tbl1", "--field", "fld1", "--dry-run"],
     ]) {
       const result = await capture(args)
       assert.equal(result.code, 0)
@@ -35,6 +38,7 @@ test("table CLI validates before loading credentials and previews are completely
     }
     for (const args of [
       [...sheets, "--json", '{"values":[[1]]}'],
+      [...sheets, "--json", '{"values":[[true,1]]}'],
       [...sheets, "--json", '{"values":[[1,2]],"extra":1}'],
       [...sheets, "--json", '{"values":[[1,2]]}', "--file", "unused.json"],
       [...sheets, "--json", '{"values":[[1,2]]}', "--force"],
@@ -44,6 +48,8 @@ test("table CLI validates before loading credentials and previews are completely
       ["bitable", "tables", "--app", "base1", "--all", "--page-token", "later"],
       ["bitable", "tables", "--app", "base1", "--page-size", "101"],
       ["bitable", "records", "search", "--app", "base1", "--table", "tbl1", "--json", '{"unknown":1}'],
+      ["bitable", "records", "delete", "--app", "base1", "--table", "tbl1"],
+      ["bitable", "fields", "delete", "--app", "base1", "--table", "tbl1", "--field", "fld1", "--json", '{}'],
     ]) {
       const result = await capture(args)
       assert.equal(result.code, 1, args.join(" "))

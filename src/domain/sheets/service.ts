@@ -15,7 +15,7 @@ export function parseRange(input: string) {
   return { sheet: m[1]!, range: `${m[1]}!${m[2]!.toUpperCase()}${startRow}:${(m[4] ?? m[2])!.toUpperCase()}${endRow}`, rows: endRow - startRow + 1, columns: endCol - startCol + 1 }
 }
 
-export type SheetCell = string | number | boolean | null | { type: "formula"; text: string }
+export type SheetCell = string | number | null | { type: "formula"; text: string }
 
 export function validateValues(value: unknown): SheetCell[][] {
   if (!Array.isArray(value) || !value.length || value.length > 5000 || !Array.isArray(value[0]) || !value[0].length || value[0].length > 100) throw new CliError("usage", "values must be a nonempty rectangular matrix, at most 5000 rows by 100 columns")
@@ -24,7 +24,7 @@ export function validateValues(value: unknown): SheetCell[][] {
     if (!Array.isArray(row) || row.length !== width) throw new CliError("usage", "values must be rectangular")
     for (const cell of row) {
       const formula = isRecord(cell) && cell.type === "formula" && typeof cell.text === "string" && cell.text.startsWith("=") && cell.text.length <= 50000 && Object.keys(cell).every(k => k === "type" || k === "text")
-      if (!(formula || cell === null || typeof cell === "boolean" || (typeof cell === "number" && Number.isFinite(cell)) || (typeof cell === "string" && cell.length <= 50000))) throw new CliError("usage", "Cells must be strings (at most 50000 characters), finite numbers, booleans, null, or {type:formula,text:=...}; other rich cells require a future adapter")
+      if (!(formula || cell === null || (typeof cell === "number" && Number.isFinite(cell)) || (typeof cell === "string" && cell.length <= 50000))) throw new CliError("usage", "Cells must be strings (at most 50000 characters), finite numbers, null, or {type:formula,text:=...}; Kunlun rejects boolean cells. Other rich cells require a future adapter")
     }
   }
   return value
@@ -85,7 +85,14 @@ export async function writeRange(api: OpenApi, token: string, input: string, ran
     verified = await valuesOf(api, token, spreadsheet, actual.range)
     const normalized = values.map((row, i) => row.map((_, j) => verified.values[i]?.[j] ?? null))
     const expected = values.map(row => row.map(cell => isRecord(cell) ? cell.text : cell))
+    for (const [i, row] of expected.entries()) for (const [j, cell] of row.entries()) if (cell === "" && normalized[i]![j] === null) normalized[i]![j] = ""
     if (JSON.stringify(normalized) !== JSON.stringify(expected)) throw new CliError("verification", "Read-back values differ from the requested values")
   } catch (err) { return writeFailure(err, { ...target, result: written }, "verify") }
   return { ...target, dry_run: false, verified: true, concurrency_protected: false, before: before?.values, result: written, read_back: verified }
+}
+
+export async function clearRange(api: OpenApi, token: string, input: string, range: string, dryRun = false) {
+  const parsed = parseRange(range)
+  const values = Array.from({ length: parsed.rows }, () => Array<string>(parsed.columns).fill(""))
+  return { ...await writeRange(api, token, input, range, values, "write", dryRun), action: "clear", clears: "cell_contents_only" }
 }

@@ -6,9 +6,9 @@
 
 | 资源 | 识别 | 当前实现 |
 | --- | --- | --- |
-| 普通电子表格 | /sheets/ 链接，工作表 resource_type=sheet | 元数据、工作表列表、区域读取、写入、插入追加、写后读回 |
+| 普通电子表格 | /sheets/ 链接，工作表 resource_type=sheet | 元数据、工作表列表、区域读取、写入、插入追加、清空内容、写后读回 |
 | 文档内嵌电子表格 | DocX block_type=30，sheet.token | 拆分 SpreadsheetToken_SheetID，交给相同 Sheets 适配器 |
-| 多维表格 | /base/ 链接，DocX block_type=18 | 元数据、数据表和字段列表、记录分页查询/读取/新增/更新、字段新增/更新 |
+| 多维表格 | /base/ 链接，DocX block_type=18 | 元数据、数据表和字段列表、记录分页查询/读取/新增/更新/删除、字段新增/更新/删除 |
 | 原生文档表格 | DocX block_type=31，单元格32 | 返回 docx_table 引用及现有块诊断；未提供布局编辑 |
 | 画板 | DocX block_type=43，board.token | 返回白板 ID；内容导出和编辑尚未实现 |
 
@@ -29,7 +29,7 @@
 
 CLI 只接受有界 A1 区域，最多5000行、100列；不承诺全工作簿完整导出。写入体为 valueRange:{range,values}。先确认 sheet 类型，覆盖前读取原值，写后根据 updatedRange 读回核对；append 显式使用 insertDataOption=INSERT_ROWS，可能移动其它行。没有原子 revision 条件，返回 concurrency_protected=false，不把读回验证称为并发保护。
 
-读取使用 valueRenderOption=Formula、user_id_type=open_id。公式写入采用 {type:"formula",text:"=..."}，按公式文本核对；其它富单元格暂拒绝，依据[支持写入的数据类型](https://open.fklzl.cnpc.com.cn/document/ukTMukTMukTM/ugjN1UjL4YTN14CO2UTN)。原始复杂值读取保留 JSON；null 输入不承诺清空语义，平台行为与预期不同会报核对失败。日期格式、图表、样式、行列操作和单元格图片尚未封装。
+读取使用 valueRenderOption=Formula、user_id_type=open_id。公式写入采用 {type:"formula",text:"=..."}，按公式文本核对；其它富单元格暂拒绝，依据[支持写入的数据类型](https://open.fklzl.cnpc.com.cn/document/ukTMukTMukTM/ugjN1UjL4YTN14CO2UTN)。本环境已实测字符串、数字、公式对象、null 写入；null 可清空原值，空字符串读回也可能为 null。布尔值返回90204（invalid cell type, type is bool），CLI 在请求前拒绝。sheets clear 通过写入空字符串清空有界区域并核对，不删除工作表或行列。日期格式、图表、样式、行列操作和单元格图片尚未封装。
 
 ## 多维表格
 
@@ -46,18 +46,20 @@ CLI 只接受有界 A1 区域，最多5000行、100列；不承诺全工作簿�
 | 更新记录 | PUT /tables/:table_id/records/:record_id | [更新记录](https://open.fklzl.cnpc.com.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-record/update) |
 | 新增字段 | POST /tables/:table_id/fields | [新增字段](https://open.fklzl.cnpc.com.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-field/create) |
 | 更新字段 | PUT /tables/:table_id/fields/:field_id | [更新字段](https://open.fklzl.cnpc.com.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-field/update) |
+| 删除记录 | DELETE /tables/:table_id/records/:record_id | [删除记录](https://open.fklzl.cnpc.com.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-record/delete) |
+| 删除字段 | DELETE /tables/:table_id/fields/:field_id | [删除字段](https://open.fklzl.cnpc.com.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-field/delete) |
 
-单条读取暂沿用环境文档明确存在的历史接口；后续迁移 batch_get 时另行核实契约。query 的 user_id_type 固定 open_id。创建记录生成或接受 UUIDv4 client_token，并在结果不明时保留该 key；不自动重试。更新记录先读原值，只提交所给 fields，写后按请求字段检查（允许服务端对象增加描述字段）。平台对只读字段、字段类型和复杂值做最终校验；规范化导致表示不同也可能核对失败，须检查实际结果。
+单条读取暂沿用环境文档明确存在的历史接口；后续迁移 batch_get 时另行核实契约。query 的 user_id_type 固定 open_id。创建记录生成或接受 UUIDv4 client_token，并在结果不明时保留该 key；不自动重试。更新记录先读原值，只提交所给 fields，写后按请求字段检查（允许服务端对象增加描述字段、文本纯 text runs）。本环境数字字段单条读回为字符串：只有查询字段定义确认 type=2 后，才按数值核对；其它类型不强制转换，read_back 保留原始值。平台对只读字段、字段类型和复杂值做最终校验；规范化导致表示不同也可能核对失败，须检查实际结果。
 
-字段写入接受 field_name、type、property、description，当前读回只验证名称与类型，返回 verification_scope=field_name_and_type，不承诺属性配置已完整核对。未封装删除、批量修改、视图管理、创建整个 Base、创建数据表或附件上传。
+字段写入接受 field_name、type、property、description，当前读回只验证名称与类型，返回 verification_scope=field_name_and_type，不承诺属性配置已完整核对。删除先读取指定目标；主字段禁止删除。DELETE 响应须明确返回 deleted=true 及匹配 ID；记录随后读取，只有1254043（RecordIdNotFound）可确认不存在；字段随后完整分页核对缺席。网络和权限错误不当作不存在。未封装工作表/行列删除、批量修改、视图管理、创建整个 Base、创建数据表或附件上传。
 
 表/字段每页最多100条，记录最多500条；默认100。--all 最多50页，游标重复、缺失、结构无效或后续网络失败以 incomplete 返回部分数据。complete 只表示从首到末分页结束，不提供事务一致快照。查询的 filter / sort 可覆盖视图的筛选和排序；高级权限可能令成功响应为空，不能据此断言没有记录。
 
 ## 身份与权限
 
-上述接口文档允许 user_access_token 或 tenant_access_token。CLI 默认 user，bot 仅显式选择，不作自动降级。读取普通表格可沿用 drive:drive:readonly；写入普通表格选 sheets:spreadsheet；Base 选 bitable:app。两项覆盖本轮接口，无需额外开通 base:app:create/copy/update 或重复只读权限。bitable:app 是较宽的权限，包含删除 API，但 CLI 当前没有删除命令。
+上述接口文档允许 user_access_token 或 tenant_access_token。CLI 默认 user，bot 仅显式选择，不作自动降级。读取普通表格可沿用 drive:drive:readonly；写入普通表格选 sheets:spreadsheet；Base 选 bitable:app。两项覆盖本轮接口，无需额外开通 base:app:create/copy/update 或重复只读权限。bitable:app 是较宽的权限，包含删除 API；CLI 将删除限定为显式指定记录或字段 ID。
 
-2026-11-10 维护者确认后台开通两项，并完成包含原四项及这两项的本人授权，返回 scope 已核对。白名单随 release 固定，未知 scope 仍在授权前拒绝。应用开通、本人同意、资源权限分别生效，token 刷新不增加权限。新能力云端读写证据以验收记录为准。
+2026-11-10 维护者确认后台开通两项，并完成包含原四项及这两项的本人授权，返回 scope 已核对。随后在用户指定文档新建专用嵌入 Sheets、Base 测试区，完成写入、更新、追加、公式、清空及字段记录增删改查；保留可见样例和操作日志。白名单随 release 固定，未知 scope 仍在授权前拒绝。应用开通、本人同意、资源权限分别生效，token 刷新不增加权限。详细证据以验收记录为准。
 
 ## 后续画板
 

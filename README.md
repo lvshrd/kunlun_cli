@@ -2,7 +2,7 @@
 
 让本机 AI Agent 用自然语言搜索、创建、读取、追加和修改本人的昆仑智联文档，以及读取和编辑电子表格、多维表格。需要 Node.js 22.18+、npm，以及能访问昆仑平台的办公网络。
 
-待发布版本 **0.2.0**，命令入口改为 `kunlun-cli`；已发布的 0.1.0 仍使用 `kunlun`。下方新入口适用于 0.2.0 发布并升级后；发布前可用源码生成的 tgz 或 `npm run install:local` 试用。
+待发布版本 **0.2.1**。0.2.0 完成命令入口改为 `kunlun-cli`、版本/帮助参数及提示英文化；0.2.1 增加表格能力及真实环境兼容修复。registry 目前最新正式版仍为 0.1.0，使用 `kunlun`；本页新命令适用于 0.2.1 发布并升级后，发布前可用源码生成的 tgz 或 `npm run install:local` 试用。
 
 npm 包名为 **[@lvshrd/kunlun-cli](https://www.npmjs.com/package/@lvshrd/kunlun-cli)**。公共 registry 中不带 scope 的同名包不是本项目。
 
@@ -43,7 +43,7 @@ npm install --global --prefix "$env:LOCALAPPDATA\kunlun-cli" @lvshrd/kunlun-cli@
 
 此后更新也在 install 命令中保留同一个 --prefix。若以前是 npm 默认全局安装，则先 `npm uninstall --global kunlun-cli`，再用上方普通安装命令。多个安装位置共存时，Windows 用 `where.exe kunlun-cli`、macOS / Linux 用 `which -a kunlun-cli` 确认实际执行的新版本，不使用 --force 覆盖未知入口。
 
-无法访问 registry 时，可从维护者获取完整离线交付目录，Windows 运行 install.cmd。其他平台使用 `npm install --global ./lvshrd-kunlun-cli-0.2.0.tgz`（版本以交付为准）。
+无法访问 registry 时，可从维护者获取完整离线交付目录，Windows 运行 install.cmd。其他平台使用 `npm install --global ./lvshrd-kunlun-cli-0.2.1.tgz`（版本以交付为准）。
 
 ## 首次配置
 
@@ -88,14 +88,16 @@ kunlun-cli docs create --title "巡检规程" --file ./草稿.md --dry-run
 kunlun-cli sheets sheets --spreadsheet <sheets链接或token>
 kunlun-cli sheets read --spreadsheet <token> --range 'sheet1!A1:C20'
 kunlun-cli sheets write --spreadsheet <token> --range 'sheet1!A1:C1' --file cells.json --dry-run
+kunlun-cli sheets clear --spreadsheet <token> --range 'sheet1!A3:C3' --dry-run
 kunlun-cli bitable tables --app <base链接或token> --all
 kunlun-cli bitable records list --app <token> --table <table_id> --all
 kunlun-cli bitable records update --app <token> --table <table_id> --record <record_id> --file record.json --dry-run
+kunlun-cli bitable records delete --app <token> --table <table_id> --record <record_id> --dry-run
 ```
 
 cells.json 为 `{"values":[["Task",1,"Plan"]]}`；record.json 为 `{"fields":{"Task":"Plan"}}`。去掉 --dry-run 执行写入并读回核对。还支持表格 append、Base 记录新增/查询和字段新增/修改，完整格式见[表格 Skill 参考](skills/kunlun-tables/references/commands.md)，接口及限制见[表格 API 依据](docs/TABLE_API.md)。
 
-本版新增 sheets:spreadsheet、bitable:app 两项固定权限，后台开通后需重新 `auth login`。已完成六项权限本人授权和嵌入电子表格真实读取；表格写入及 Base 云端业务仍待专用测试资源验收。写入没有原子并发保护；Base 字段属性目前只核对名称与类型。跨表自动同步、原生 DocX 表格布局编辑和画板内容操作尚未实现。
+本版新增 sheets:spreadsheet、bitable:app 两项固定权限，后台开通后需重新 `auth login`。已完成六项权限本人授权，以及指定文档内嵌 Sheets 与 Base 的真实增删改查。Sheets clear 只清空内容，保留行列；Base 支持指定记录、非主字段删除。Sheets 不接受原生布尔值；Base 数字字符串读回仅依据数字字段类型核对。写入没有原子并发保护；Base 字段属性目前只核对名称与类型。跨表自动同步、原生 DocX 表格布局编辑和画板内容操作尚未实现；画板当前仅能发现资源 ID。
 
 - 搜索仅支持本人身份，按完整标题读取须唯一匹配且明确为 docx。同名、候选未取全、旧版或未知资源类型不自动读取；真实平台搜索仍待验收。
 - 写入支持普通段落和一至三级标题；修改要求在单个文本 run 内唯一匹配。删除、移动、重命名、原生编号、正文评论和复杂格式编辑尚未实现。

@@ -46,6 +46,9 @@ export async function getRecord(api: OpenApi, token: string, app: string, tableI
 }
 
 function contains(actual: unknown, expected: unknown): boolean {
+  // Accept text-only rich-text runs when returned by an API representation;
+  // never flatten mentions, links or ID arrays into plain strings.
+  if (typeof expected === "string" && Array.isArray(actual) && actual.every(run => isRecord(run) && run.type === "text" && typeof run.text === "string")) return actual.map(run => run.text).join("") === expected
   if (Array.isArray(expected)) return Array.isArray(actual) && actual.length === expected.length && expected.every((v, i) => contains(actual[i], v))
   if (isRecord(expected)) return isRecord(actual) && Object.keys(expected).every(k => Object.hasOwn(actual, k) && contains(actual[k], expected[k]))
   return Object.is(actual, expected)
@@ -76,14 +79,27 @@ export async function writeRecord(api: OpenApi, token: string, app: string, tabl
     result = objectOf(dataOf(await api.call({ method: id ? "PUT" : "POST", path: id ? `${root}/records/${encodeURIComponent(id)}` : `${root}/records`, token,
       query: { user_id_type: "open_id", ...(clientToken ? { client_token: clientToken } : {}) }, body: { fields } })).record, "record")
   } catch (err) { return writeFailure(err, target, "write") }
-  let readBack: Record<string, unknown>
+  let readBack: Record<string, unknown> = {}
+  const numericNormalizations: string[] = []
   try {
     const recordId = str(result.record_id)
     if (!recordId || (id && id !== recordId)) throw new CliError("api", "The write response has an invalid record_id")
     readBack = await getRecord(api, token, app, tableId, recordId)
-    if (!contains(readBack.fields, fields)) throw new CliError("verification", "Read-back fields differ from the requested fields")
-  } catch (err) { return writeFailure(err, { ...target, record_id: result.record_id, result }, "verify") }
-  return { ...target, record_id: result.record_id, dry_run: false, verified: true, concurrency_protected: false, before, result, read_back: readBack }
+    if (!contains(readBack.fields, fields)) {
+      const schema = await listFields(api, token, app, tableId, { all: true })
+      const actual = { ...objectOf(readBack.fields, "record fields") }
+      for (const [name, expected] of Object.entries(fields as Record<string, unknown>)) {
+        const field = schema.items.find(item => isRecord(item) && item.field_name === name)
+        const value = actual[name]
+        if (isRecord(field) && field.type === 2 && typeof expected === "number" && typeof value === "string" && /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(value) && Number.isFinite(Number(value))) {
+          actual[name] = Number(value)
+          numericNormalizations.push(name)
+        }
+      }
+      if (!contains(actual, fields)) throw new CliError("verification", "Read-back fields differ from the requested fields")
+    }
+  } catch (err) { return writeFailure(err, { ...target, record_id: result.record_id, result, read_back: readBack }, "verify") }
+  return { ...target, record_id: result.record_id, dry_run: false, verified: true, verification_scope: "requested_fields", numeric_normalizations: numericNormalizations, concurrency_protected: false, before, result, read_back: readBack }
 }
 
 export function validateField(input: unknown): Record<string, unknown> {
@@ -109,4 +125,41 @@ export async function writeField(api: OpenApi, token: string, app: string, table
     if (!isRecord(field) || field.field_name !== body.field_name || field.type !== body.type) throw new CliError("verification", "Field read-back did not match name and type")
     return { ...target, field_id: result.field_id, dry_run: false, result, read_back: field, verified: true, verification_scope: "field_name_and_type" }
   } catch (err) { return writeFailure(err, { ...target, result }, "verify") }
+}
+
+export async function deleteResource(api: OpenApi, token: string, app: string, tableId: string, kind: "records" | "fields", resourceId: string, dryRun = false) {
+  const root = table(app, tableId), id = identifier(resourceId, kind === "records" ? "record ID" : "field ID")
+  const key = kind === "records" ? "record_id" : "field_id"
+  const target = { app_token: resourceToken(app, "base"), table_id: tableId, [key]: id, action: "delete" }
+  if (dryRun) return { ...target, dry_run: true, required_scope: "bitable:app", permission_check: "pending", resource_check: "pending" }
+  let before: Record<string, unknown>
+  if (kind === "records") before = await getRecord(api, token, app, tableId, id)
+  else {
+    const fields = await listFields(api, token, app, tableId, { all: true })
+    const field = fields.items.find(item => isRecord(item) && item.field_id === id)
+    if (!isRecord(field)) throw new CliError("not_found", "The field was not found; deletion was stopped")
+    if (field.is_primary === true) throw new CliError("usage", "The primary field cannot be deleted")
+    before = field
+  }
+  let result: Record<string, unknown>
+  try { result = dataOf(await api.call({ method: "DELETE", path: `${root}/${kind}/${encodeURIComponent(id)}`, token })) }
+  catch (err) { return writeFailure(err, target, "write") }
+  try {
+    if (result.deleted !== true || result[key] !== id) throw new CliError("verification", "The API did not confirm deletion of the requested resource")
+    if (kind === "fields") {
+      const fields = await listFields(api, token, app, tableId, { all: true })
+      if (fields.items.some(item => isRecord(item) && item.field_id === id)) throw new CliError("verification", "The deleted field is still present")
+    } else {
+      let absent = false
+      try { await getRecord(api, token, app, tableId, id) }
+      catch (err) {
+        const data = err instanceof CliError && isRecord(err.data) ? err.data : {}
+        const upstream = isRecord(data.upstream) ? data.upstream : {}
+        if (err instanceof CliError && err.type === "api" && upstream.code === 1254043) absent = true
+        else throw err
+      }
+      if (!absent) throw new CliError("verification", "The deleted record is still readable")
+    }
+  } catch (err) { return writeFailure(err, { ...target, result, before }, "verify") }
+  return { ...target, dry_run: false, deleted: true, verified: true, verification_scope: kind === "records" ? "record_not_found" : "field_absent", concurrency_protected: false, before, result }
 }
