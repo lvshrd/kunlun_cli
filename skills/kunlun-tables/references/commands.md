@@ -2,6 +2,8 @@
 
 以下 ID 均为占位符。默认 user，显式 `--as bot` 使用应用身份及其资源权限。写入输入三选一：`--json '<JSON>'`、`--file <UTF-8.json>`、`--stdin`。PowerShell 推荐文件输入，避免引号转义。
 
+创建新表格或“建云文档并放入三类表格”使用 `docs tables create --document <ID> --type native|sheet|bitable`，原生表格使用 docs tables read/write；完整参数、初始化及恢复见[创建含三类表格的文档](create-with-tables.md)。下文sheets/bitable命令接续操作已有或刚创建的实际资源。
+
 ## 电子表格
 
 ```sh

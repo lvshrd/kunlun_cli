@@ -30,6 +30,10 @@ test("table CLI validates before loading credentials and previews are completely
       ["sheets", "clear", "--spreadsheet", "sht1", "--range", "sheet1!A1:B1", "--dry-run"],
       ["bitable", "records", "delete", "--app", "base1", "--table", "tbl1", "--record", "rec1", "--dry-run"],
       ["bitable", "fields", "delete", "--app", "base1", "--table", "tbl1", "--field", "fld1", "--dry-run"],
+      ["docs", "tables", "create", "--document", "doc1", "--type", "native", "--json", '{"values":[["Task",1]]}', "--dry-run"],
+      ["docs", "tables", "create", "--document", "doc1", "--type", "sheet", "--rows", "3", "--columns", "4", "--dry-run"],
+      ["docs", "tables", "create", "--document", "doc1", "--type", "bitable", "--dry-run"],
+      ["docs", "tables", "write", "--document", "doc1", "--table", "table1", "--json", '{"values":[["New"]]}', "--dry-run"],
     ]) {
       const result = await capture(args)
       assert.equal(result.code, 0)
@@ -50,6 +54,10 @@ test("table CLI validates before loading credentials and previews are completely
       ["bitable", "records", "search", "--app", "base1", "--table", "tbl1", "--json", '{"unknown":1}'],
       ["bitable", "records", "delete", "--app", "base1", "--table", "tbl1"],
       ["bitable", "fields", "delete", "--app", "base1", "--table", "tbl1", "--field", "fld1", "--json", '{}'],
+      ["docs", "tables", "create", "--document", "doc1", "--type", "bitable", "--rows", "3"],
+      ["docs", "tables", "create", "--document", "doc1", "--type", "sheet", "--rows", "10"],
+      ["docs", "tables", "create", "--document", "doc1", "--type", "unknown"],
+      ["docs", "tables", "write", "--document", "doc1", "--table", "table1", "--json", '{"values":[["New"]]}', "--revision", "-1"],
     ]) {
       const result = await capture(args)
       assert.equal(result.code, 1, args.join(" "))

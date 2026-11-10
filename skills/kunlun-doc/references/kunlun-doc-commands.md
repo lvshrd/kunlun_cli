@@ -14,6 +14,9 @@
 | 追加 | `kunlun-cli docs append --document <ID> --file ./补充.md`，支持 --dry-run |
 | 精确修改预览 | `kunlun-cli docs edit --document <ID> --find "原文" --replace "新文" --dry-run` |
 | 执行修改 | 去掉 --dry-run，并传入预览返回的 `--revision <版本>` |
+| 创建并嵌入表格 | `kunlun-cli docs tables create --document <ID> --type native|sheet|bitable [--title <小节>]` |
+| 读取原生普通表格 | `kunlun-cli docs tables read --document <ID> --table <block_id>` |
+| 修改原生表格文字 | `kunlun-cli docs tables write --document <ID> --table <block_id> --file <values.json> [--revision <N>] [--dry-run]` |
 
 创建和追加的预览只处理本地正文，不能证明权限可用。修改预览会读取云端定位文本，但不写入；修改执行用文档版本限制并发冲突。
 
@@ -26,7 +29,7 @@
 搜索 limit 为 1～50、offset 非负，offset + limit 必须小于 200。下一页同时传 next_offset 和 next_limit；search_window_exhausted=true 表示有更多数据但已到接口窗口上限，需要缩小关键词。空结果、权限错误和响应异常分别处理；不扩大当前版本固定权限。后台与实际接口仍需真实环境验收。
 
 
-写入格式支持三级标题和普通段落。复杂表格、代码块、列表和截图尚未实现，读取也不保真。删除、移动、重命名尚无快捷命令。
+Markdown正文写入支持三级标题和普通段落；表格不会从Markdown自动转换，但可通过docs tables专用命令创建并嵌入。三类表格的完整初始化及验收流程见[创建含三类表格的文档](../../kunlun-tables/references/create-with-tables.md)。复杂表格结构、代码块、列表和截图尚未封装；全文读取也不保真。文档删除、移动、重命名尚无快捷命令。
 
 读取先获取文档 revision，所有页固定该版本。原有 markdown / block_count 字段保留，新增：
 

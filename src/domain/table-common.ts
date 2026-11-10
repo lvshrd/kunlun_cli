@@ -6,7 +6,7 @@ export function identifier(value: string, name: string): string {
   return value
 }
 
-export function resourceToken(input: string, kind: "sheets" | "base"): string {
+export function resourceToken(input: string, kind: "sheets" | "base" | "docx"): string {
   if (!input.includes("://")) return identifier(input, `${kind} token`)
   let url: URL
   try { url = new URL(input) } catch { throw new CliError("usage", "Invalid resource URL") }

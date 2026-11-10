@@ -7,6 +7,7 @@ import { doctorRoutes } from "./commands/doctor.ts"
 import { docsRoutes } from "./commands/docs.ts"
 import { skillsRoutes } from "./commands/skills.ts"
 import { tableRoutes } from "./commands/tables.ts"
+import { docTableRoutes } from "./commands/doc-tables.ts"
 import type { Route } from "./route.ts"
 import { CliError } from "../errors.ts"
 
@@ -17,6 +18,7 @@ export function allRoutes(): Route[] {
     ...doctorRoutes(),
     ...apiRoutes(),
     ...docsRoutes(),
+    ...docTableRoutes(),
     ...tableRoutes(),
     ...skillsRoutes(),
     {

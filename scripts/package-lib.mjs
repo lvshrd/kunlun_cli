@@ -24,7 +24,7 @@ export function runNpm(args, options = {}) {
 
 function validateFiles(packed) {
   const names = packed.files.map((file) => file.path)
-  for (const required of ["dist/main.js", "dist/domain/docs/template.js", "dist/domain/sheets/service.js", "dist/domain/bitable/service.js", "README.md", "skills/kunlun-doc/SKILL.md", "skills/kunlun-shared/SKILL.md", "skills/kunlun-tables/SKILL.md", "skills/kunlun-tables/references/commands.md"]) {
+  for (const required of ["dist/main.js", "dist/domain/docs/template.js", "dist/domain/docs/tables.js", "dist/domain/sheets/service.js", "dist/domain/bitable/service.js", "README.md", "skills/kunlun-doc/SKILL.md", "skills/kunlun-shared/SKILL.md", "skills/kunlun-tables/SKILL.md", "skills/kunlun-tables/references/commands.md", "skills/kunlun-tables/references/create-with-tables.md"]) {
     assert.ok(names.includes(required), `Package is missing ${required}`)
   }
   for (const name of names) {

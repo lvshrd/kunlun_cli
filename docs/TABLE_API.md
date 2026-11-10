@@ -9,12 +9,22 @@
 | 普通电子表格 | /sheets/ 链接，工作表 resource_type=sheet | 元数据、工作表列表、区域读取、写入、插入追加、清空内容、写后读回 |
 | 文档内嵌电子表格 | DocX block_type=30，sheet.token | 拆分 SpreadsheetToken_SheetID，交给相同 Sheets 适配器 |
 | 多维表格 | /base/ 链接，DocX block_type=18 | 元数据、数据表和字段列表、记录分页查询/读取/新增/更新/删除、字段新增/更新/删除 |
-| 原生文档表格 | DocX block_type=31，单元格32 | 返回 docx_table 引用及现有块诊断；未提供布局编辑 |
+| 原生文档表格 | DocX block_type=31，单元格32 | 创建带内容表格、按矩阵读取/修改简单单元格文字；合并单元格与行列结构调整未实现 |
 | 画板 | DocX block_type=43，board.token | 返回白板 ID；内容导出和编辑尚未实现 |
 
 用户提供的“数据电子表格”样本实际是 DocX 中的 type30 嵌入表格，已验证 resource_type=sheet，3×4 区域读取成功。这只说明该样本对应 Sheets，不声称所有同名界面都属于同一资源。Sheets 元数据还可能返回 bitable / #UNSUPPORTED_TYPE，单元格动作遇到它们会停止，不猜测 token 转换。
 
 资源字段依据：[DocX Block 数据结构](https://open.fklzl.cnpc.com.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/data-structure/block)。docs read 的 resources 只负责定位，不自动读取嵌入内容，原有 content_complete / diagnostics 继续报告省略。
+
+## 文档内创建与嵌入
+
+正式入口为 `docs tables create --document <ID> --type native|sheet|bitable`，均追加到文档末尾；可用--title同时创建二级标题。创建与操作已有资源是不同能力：先前CRUD验收使用原始API创建测试区，没有正式创建命令；本次补齐后，Agent可按[三类表格流程](../skills/kunlun-tables/references/create-with-tables.md)完成整个请求。
+
+- native使用[创建嵌套块](https://open.fklzl.cnpc.com.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block-descendant/create)：POST /open-apis/docx/v1/documents/:document_id/blocks/:document_id/descendant，children_id只包含顶层表格/标题，descendants包含Table、TableCell和每格Text。一次请求完成结构与内容创建，之后读回矩阵核对。
+- sheet/bitable使用[创建块](https://open.fklzl.cnpc.com.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block-children/create)：POST /open-apis/docx/v1/documents/:document_id/blocks/:document_id/children，分别创建type30的sheet行列、type18的bitable视图。平台创建实际资源并返回组合token，CLI再核对文档引用及资源元数据。返回content_initialized=false，需要接续Sheets/Base写入命令。
+- 普通表格与Sheet初始化契约另见[文档常见问题](https://open.fklzl.cnpc.com.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/faq)。创建支持UUIDv4 client_token，写入不自动重试，结果不明保留document_id、block_id与key，不自动重建整篇文档。
+
+CLI初始限制1～9行/列；native values支持标量并转为普通文字。docs tables read最多81个未合并单元格，每格一个普通段落；docs tables write最多50格，每格最多一个text run、保留其样式，矩阵须与表尺寸一致。复杂/嵌套/合并内容明确拒绝。写前可检查--revision，但没有严格原子并发保证，仍需写后核对。单元格文字清空可通过写空字符串完成，不等于删除表或行列。
 
 ## 电子表格
 
@@ -51,7 +61,7 @@ CLI 只接受有界 A1 区域，最多5000行、100列；不承诺全工作簿�
 
 单条读取暂沿用环境文档明确存在的历史接口；后续迁移 batch_get 时另行核实契约。query 的 user_id_type 固定 open_id。创建记录生成或接受 UUIDv4 client_token，并在结果不明时保留该 key；不自动重试。更新记录先读原值，只提交所给 fields，写后按请求字段检查（允许服务端对象增加描述字段、文本纯 text runs）。本环境数字字段单条读回为字符串：只有查询字段定义确认 type=2 后，才按数值核对；其它类型不强制转换，read_back 保留原始值。平台对只读字段、字段类型和复杂值做最终校验；规范化导致表示不同也可能核对失败，须检查实际结果。
 
-字段写入接受 field_name、type、property、description，当前读回只验证名称与类型，返回 verification_scope=field_name_and_type，不承诺属性配置已完整核对。删除先读取指定目标；主字段禁止删除。DELETE 响应须明确返回 deleted=true 及匹配 ID；记录随后读取，只有1254043（RecordIdNotFound）可确认不存在；字段随后完整分页核对缺席。网络和权限错误不当作不存在。未封装工作表/行列删除、批量修改、视图管理、创建整个 Base、创建数据表或附件上传。
+字段写入接受 field_name、type、property、description，当前读回只验证名称与类型，返回 verification_scope=field_name_and_type，不承诺属性配置已完整核对。删除先读取指定目标；主字段禁止删除。DELETE 响应须明确返回 deleted=true 及匹配 ID；记录随后读取，只有1254043（RecordIdNotFound）可确认不存在；字段随后完整分页核对缺席。网络和权限错误不当作不存在。Base可通过DocX嵌入创建；尚未封装独立Base创建、向已有Base新增数据表、工作表/行列删除、批量修改、视图管理或附件上传。
 
 表/字段每页最多100条，记录最多500条；默认100。--all 最多50页，游标重复、缺失、结构无效或后续网络失败以 incomplete 返回部分数据。complete 只表示从首到末分页结束，不提供事务一致快照。查询的 filter / sort 可覆盖视图的筛选和排序；高级权限可能令成功响应为空，不能据此断言没有记录。
 

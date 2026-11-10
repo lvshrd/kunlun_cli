@@ -12,7 +12,7 @@ src/cli → src/domain → src/client → 昆仑开放平台
 | 目录 | 职责 |
 | --- | --- |
 | src/cli | 路由、参数、帮助和 stdout 信封 |
-| src/domain/docs | 搜索、读取、块转换及写入工作流 |
+| src/domain/docs | 搜索、读取、块转换、三类表格创建/嵌入及原生单元格文字读写 |
 | src/domain/sheets、src/domain/bitable | 电子表格及 Base 适配器；复用 table-common 的分页和写入结果不明处理 |
 | src/client | 同源 HTTP、超时、上游错误翻译 |
 | src/auth、src/config | 身份授权、scope、刷新及本机配置 |

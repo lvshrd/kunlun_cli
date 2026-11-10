@@ -10,6 +10,7 @@ description: "用户要用自然语言在本人昆仑智联云空间搜索、创
 ## 从需求到动作
 
 - 创建：把用户提供的资料整理成 UTF-8 Markdown 草稿，再用 `docs create --title ... --file ... --dry-run` 预览，随后按授权创建，读回核对并返回 ID / 可用链接。
+- 创建含表格的文档：docs create 完成正文后，用 `docs tables create --document <ID> --type native|sheet|bitable` 创建并嵌入普通表格、电子表格、多维表格。读取 [三类表格创建流程](../kunlun-tables/references/create-with-tables.md)；native可直接带values，Sheet/Base须再填充。不要把“Markdown正文只支持标题段落”误解成不能创建含表格文档。
 - 搜索定位：用户只给名称或关键词时，先用 `docs search --query <关键词>` 查候选，依据标题、类型及所有者定位；不要一开始就要求用户提供 ID。有多份可能目标时向用户消歧，不自动选择第一条。结果未取全时缩小关键词，翻页同时使用返回的 next_offset / next_limit；窗口耗尽不声称已经搜完。
 - 按完整标题读取：可用 `docs read --name <完整标题>`；仅在候选页已取全、完整标题唯一匹配且类型明确为 docx 时自动读正文。遇到 ambiguous / incomplete / not_found 时查看返回候选，再缩小范围或消歧；unsupported 表示当前不能读取该候选类型。
 
@@ -30,4 +31,4 @@ description: "用户要用自然语言在本人昆仑智联云空间搜索、创
 
 `error.type: incomplete` 需按阶段处理：名称定位时 data 为未取全的搜索候选，不能据此选择目标；正文读取时 data 包含 document_id、部分内容和 reason，不能据此删除、重建、自动重试写入或声称全文已读完。正文读取固定到返回的 revision；版本信息不可用时停止读取。
 
-文档内嵌表格查看 resources，使用 [kunlun-tables](../kunlun-tables/SKILL.md) 读取或编辑明确的表格资源。原生 DocX 表格布局、删除、移动、重命名、截图和复杂章节编辑未实现；清楚说明限制，不伪造命令。
+文档内嵌表格查看 resources，使用 [kunlun-tables](../kunlun-tables/SKILL.md) 创建、读取或编辑明确的表格资源。普通DocX表格支持简单单元格文字创建/读取/写入；合并单元格、行列结构调整、文档删除/移动/重命名、截图和复杂章节编辑未实现。画板仅发现引用，不支持内容操作。

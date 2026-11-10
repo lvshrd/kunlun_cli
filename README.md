@@ -78,6 +78,16 @@ kunlun-cli docs template --output ./草稿.md
 kunlun-cli docs create --title "巡检规程" --file ./草稿.md --dry-run
 ```
 
+要创建包含三类表格的文档，先创建正文，再调用专用命令：
+
+```sh
+kunlun-cli docs tables create --document <新文档ID> --type native --title "普通表格" --file native.json
+kunlun-cli docs tables create --document <新文档ID> --type sheet --title "电子表格" --rows 3 --columns 3
+kunlun-cli docs tables create --document <新文档ID> --type bitable --title "多维表格"
+```
+
+native.json 为 `{"values":[["项目","状态"],["示例","进行中"]]}`。普通表格创建时即写入内容并读回；Sheet/Base创建后返回实际资源ID，再用sheets write、bitable字段/记录命令初始化。完整步骤见[三类表格创建流程](skills/kunlun-tables/references/create-with-tables.md)，Agent已提供对应Skill指导。
+
 创建、追加、修改的完整参数见 `kunlun-cli docs --help` 和 [Skill 命令参考](skills/kunlun-doc/references/kunlun-doc-commands.md)。创建和追加去掉 `--dry-run` 才会写入；编辑预览会读取云端，执行时携带预览返回的 revision。
 
 ## 当前边界
@@ -97,7 +107,7 @@ kunlun-cli bitable records delete --app <token> --table <table_id> --record <rec
 
 cells.json 为 `{"values":[["Task",1,"Plan"]]}`；record.json 为 `{"fields":{"Task":"Plan"}}`。去掉 --dry-run 执行写入并读回核对。还支持表格 append、Base 记录新增/查询和字段新增/修改，完整格式见[表格 Skill 参考](skills/kunlun-tables/references/commands.md)，接口及限制见[表格 API 依据](docs/TABLE_API.md)。
 
-本版新增 sheets:spreadsheet、bitable:app 两项固定权限，后台开通后需重新 `auth login`。已完成六项权限本人授权，以及指定文档内嵌 Sheets 与 Base 的真实增删改查。Sheets clear 只清空内容，保留行列；Base 支持指定记录、非主字段删除。Sheets 不接受原生布尔值；Base 数字字符串读回仅依据数字字段类型核对。写入没有原子并发保护；Base 字段属性目前只核对名称与类型。跨表自动同步、原生 DocX 表格布局编辑和画板内容操作尚未实现；画板当前仅能发现资源 ID。
+本版新增 sheets:spreadsheet、bitable:app 两项固定权限，后台开通后需重新 `auth login`。已完成六项权限本人授权、指定文档内嵌 Sheets/Base 真实增删改查，以及新建文档中三类表格的正式命令创建/嵌入和内容核对。普通DocX表格支持未合并、每格一个普通段落的文字；创建最多9×9，读最多81格，写最多50格。Sheets clear只清空内容，Base可删除指定记录和非主字段。Sheets不接受原生布尔值；Base数字字符串仅依据数字字段类型核对。写入没有原子并发保护，字段属性只核对名称和类型。合并单元格、原生表格行列结构调整、跨表自动同步和画板内容操作尚未实现；画板当前仅发现资源ID。
 
 - 搜索仅支持本人身份，按完整标题读取须唯一匹配且明确为 docx。同名、候选未取全、旧版或未知资源类型不自动读取；真实平台搜索仍待验收。
 - 写入支持普通段落和一至三级标题；修改要求在单个文本 run 内唯一匹配。删除、移动、重命名、原生编号、正文评论和复杂格式编辑尚未实现。
