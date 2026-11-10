@@ -15,7 +15,7 @@ test("Agent Skill 支持预览，默认保留已有文件，显式更新才覆�
     assert.match(readFileSync(path.join(destinations[1]!, "SKILL.md"), "utf8"), /kunlun-doc/)
     const file = path.join(destinations[0]!, "SKILL.md")
     writeFileSync(file, "local-customization")
-    assert.throws(() => installSkills(target), /已存在/)
+    assert.throws(() => installSkills(target), /already exists/)
     assert.equal(readFileSync(file, "utf8"), "local-customization")
     installSkills(target, true)
     assert.match(readFileSync(file, "utf8"), /kunlun-shared/)

@@ -6,14 +6,14 @@ export async function editDocument(
   api: OpenApi, token: string, documentId: string,
   input: { find: string; replacement: string; dryRun?: boolean; revision?: number },
 ): Promise<{ document_id: string; block_id: string; revision: number; before: string; after: string; dry_run: boolean }> {
-  if (!input.find || !input.replacement || input.find === input.replacement) throw new CliError("usage", "查找和替换文本不能为空或相同")
+  if (!input.find || !input.replacement || input.find === input.replacement) throw new CliError("usage", "Find and replacement text must be nonempty and different")
   const base = `/open-apis/docx/v1/documents/${encodeURIComponent(documentId)}`
   const meta = await api.call({ method: "GET", path: base, token })
   const data = isRecord(meta) && isRecord(meta.data) ? meta.data : {}
   const doc = isRecord(data.document) ? data.document : {}
   const revision = doc.revision_id
-  if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 0) throw new CliError("api", "无法获取文档版本，停止修改")
-  if (input.revision !== undefined && input.revision !== revision) throw new CliError("conflict", "文档版本已变化，请重新预览修改")
+  if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 0) throw new CliError("api", "Cannot determine the document revision; editing was stopped")
+  if (input.revision !== undefined && input.revision !== revision) throw new CliError("conflict", "The document revision has changed; preview the edit again")
   const matches: Array<{ id: string; before: string; run: Record<string, unknown>; element: Record<string, unknown> }> = []
   let pageToken = ""
   for (let page = 0; page < 20; page++) {
@@ -38,9 +38,9 @@ export async function editDocument(
     }
     if (pageData.has_more !== true) break
     pageToken = str(pageData.page_token) ?? ""
-    if (!pageToken || page === 19) throw new CliError("api", "文档未完整读取，停止修改", "缩小文档范围或使用块级接口")
+    if (!pageToken || page === 19) throw new CliError("api", "The document was not fully read; editing was stopped", "Narrow the document scope or use a block-level API")
   }
-  if (matches.length !== 1) throw new CliError("usage", `匹配到 ${matches.length} 处可编辑文本，必须唯一匹配`, "提供更完整的原段落；复杂富文本暂不支持此编辑命令")
+  if (matches.length !== 1) throw new CliError("usage", `Found ${matches.length} editable matches; exactly one match is required`, "Provide a more specific original paragraph. This edit command does not support complex rich text")
   const match = matches[0]!
   const after = match.before.replace(input.find, () => input.replacement)
   if (!input.dryRun) {

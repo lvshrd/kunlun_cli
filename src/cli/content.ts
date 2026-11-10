@@ -9,7 +9,7 @@ export function readBody(flags: Flags): string {
   const fromStdin = boolFlag(flags, "stdin")
   const selected = [content !== undefined, file !== undefined, fromStdin].filter(Boolean).length
   if (selected > 1) {
-    throw new CliError("usage", "--content、--file、--stdin 只能使用一个")
+    throw new CliError("usage", "Use only one of --content, --file, or --stdin")
   }
   if (content !== undefined) return content
   if (file !== undefined) {
@@ -17,7 +17,7 @@ export function readBody(flags: Flags): string {
       return readFileSync(file, "utf8")
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      throw new CliError("usage", `无法读取文件 ${file}`, message)
+      throw new CliError("usage", `Cannot read file: ${file}`, message)
     }
   }
   if (fromStdin) return readFileSync(0, "utf8")

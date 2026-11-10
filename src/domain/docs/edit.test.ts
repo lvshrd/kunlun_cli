@@ -27,10 +27,10 @@ test("段落编辑预览不写入，执行保留样式并使用预览版本", as
 
 test("版本冲突、重复匹配及不完整分页均拒绝修改", async () => {
   const conflict = fixture()
-  await assert.rejects(editDocument(conflict.api, "t", "d", { find: "每周", replacement: "每天", revision: 7 }), /版本已变化/)
+  await assert.rejects(editDocument(conflict.api, "t", "d", { find: "每周", replacement: "每天", revision: 7 }), /revision has changed/)
   const duplicate = fixture("每周检查，每周记录")
-  await assert.rejects(editDocument(duplicate.api, "t", "d", { find: "每周", replacement: "每天" }), /2 处/)
+  await assert.rejects(editDocument(duplicate.api, "t", "d", { find: "每周", replacement: "每天" }), /2 editable matches/)
   const incomplete = fixture("每周检查", true)
-  await assert.rejects(editDocument(incomplete.api, "t", "d", { find: "每周", replacement: "每天" }), /未完整读取/)
+  await assert.rejects(editDocument(incomplete.api, "t", "d", { find: "每周", replacement: "每天" }), /not fully read/)
   for (const f of [conflict, duplicate, incomplete]) assert.equal(f.calls.some((c) => c.method === "PATCH"), false)
 })

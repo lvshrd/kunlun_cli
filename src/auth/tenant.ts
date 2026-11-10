@@ -23,7 +23,7 @@ export async function requestTenantToken(api: OpenApi, appId: string, secret: st
   })
   const record = isRecord(body) ? body : {}
   const token = str(record.tenant_access_token)
-  if (!token) throw new CliError("auth", "租户凭证响应缺少 tenant_access_token")
+  if (!token) throw new CliError("auth", "The tenant token response is missing tenant_access_token")
   return { token, expire: num(record.expire) ?? 7200 }
 }
 
@@ -34,6 +34,6 @@ export async function requestAppAccessToken(api: OpenApi, appId: string, secret:
     body: { app_id: appId, app_secret: secret },
   })
   const token = str(isRecord(body) ? body.app_access_token : undefined)
-  if (!token) throw new CliError("auth", "应用凭证响应缺少 app_access_token")
+  if (!token) throw new CliError("auth", "The application token response is missing app_access_token")
   return token
 }

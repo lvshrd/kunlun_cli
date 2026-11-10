@@ -34,12 +34,12 @@ export function validateSearchInput(input: SearchInput): Required<SearchInput> {
   const query = input.query.trim()
   const limit = input.limit ?? 20
   const offset = input.offset ?? 0
-  if (!query) throw new CliError("usage", "搜索关键词不能为空")
+  if (!query) throw new CliError("usage", "The search query must not be empty")
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) {
-    throw new CliError("usage", "--limit 必须是 1 到 50 的整数")
+    throw new CliError("usage", "--limit must be an integer from 1 to 50")
   }
   if (!Number.isSafeInteger(offset) || offset < 0 || offset + limit >= 200) {
-    throw new CliError("usage", "--offset 必须为非负整数，且 offset + limit 必须小于 200", "缩小关键词范围；该接口无法遍历 200 条及以后的结果。")
+    throw new CliError("usage", "--offset must be a nonnegative integer, and offset + limit must be less than 200", "Narrow the search query; this API cannot enumerate results at offset 200 or beyond.")
   }
   return { query, limit, offset }
 }
@@ -71,18 +71,18 @@ export async function searchDocuments(api: OpenApi, token: string, input: Search
 
 export async function resolveDocumentByName(api: OpenApi, token: string, name: string): Promise<SearchItem & { document_id: string }> {
   const result = await searchDocuments(api, token, { query: name, limit: 50 })
-  const hint = "先运行 kunlun-cli docs search --query <关键词> 查看候选，缩小范围或选定候选后用 docs read --document <ID>。"
+  const hint = "Run kunlun-cli docs search --query <query> to inspect candidates. Narrow the query or select a candidate and use docs read --document <ID>."
   // 第一页不能证明全局唯一；即使已出现一个同名结果，也不能直接选中。
   if (result.has_more) {
-    throw new CliError("incomplete", "搜索还有更多结果，无法确认完整标题唯一，未读取正文", hint, result)
+    throw new CliError("incomplete", "More search results are available; title uniqueness cannot be confirmed, so no document was read", hint, result)
   }
   const matches = [...new Map(result.items.filter(item => item.title === name.trim())
     .map(item => [`${item.type}:${item.token}`, item])).values()]
-  if (matches.length === 0) throw new CliError("not_found", "搜索结果中没有完整标题匹配的文档，未读取正文", hint, result)
-  if (matches.length > 1) throw new CliError("ambiguous", "找到多个同名文档，未自动选择", hint, result)
+  if (matches.length === 0) throw new CliError("not_found", "No exact title match was found; no document was read", hint, result)
+  if (matches.length > 1) throw new CliError("ambiguous", "Multiple documents have the same title; none was selected automatically", hint, result)
   const match = matches[0]!
   if (!match.document_id) {
-    throw new CliError("unsupported", "匹配的资源不是已确认的新版 docx 文档，当前不能读取其正文", "依据候选类型选择可用文档；不要把旧版 doc token 当作 docx ID。", result)
+    throw new CliError("unsupported", "The matching resource is not a confirmed docx document; its content cannot be read", "Choose a supported document based on the candidate type; do not use a legacy doc token as a docx ID.", result)
   }
   return { ...match, document_id: match.document_id }
 }
@@ -99,5 +99,5 @@ function parseItem(value: unknown): SearchItem {
 }
 
 function invalidResponse(): CliError {
-  return new CliError("api", "搜索接口响应缺少有效的候选或分页信息，未将其视为空结果", "请维护者核对当前昆仑版本的搜索接口响应；不要猜测文档类型或扩大授权。")
+  return new CliError("api", "The search response has invalid candidates or pagination; it was not treated as an empty result", "Ask the maintainer to verify the search response for this Kunlun version; do not guess resource types or expand authorization.")
 }

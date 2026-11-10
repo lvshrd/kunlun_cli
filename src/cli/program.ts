@@ -16,7 +16,7 @@ export async function run(argv: string[]): Promise<number> {
     if (parsed.positionals.length === 0 || parsed.positionals[0] === "help" || boolFlag(parsed.flags, "help")) {
       const prefix = (parsed.positionals[0] === "help" ? parsed.positionals.slice(1) : parsed.positionals).join(" ")
       const related = routes.filter((route) => route.path.join(" ") === prefix || route.path.join(" ").startsWith(`${prefix} `))
-      if (prefix && related.length === 0) throw new CliError("usage", `未知命令：${prefix}`, "运行 kunlun-cli --help 查看命令")
+      if (prefix && related.length === 0) throw new CliError("usage", `Unknown command: ${prefix}`, "Run kunlun-cli --help to view commands")
       process.stdout.write(formatHelp(prefix ? related : routes))
       return 0
     }
@@ -29,7 +29,7 @@ export async function run(argv: string[]): Promise<number> {
         process.stdout.write(formatHelp(related))
         return 0
       }
-      throw new CliError("usage", `未知命令：${prefix}`, "运行 kunlun-cli help 查看命令")
+      throw new CliError("usage", `Unknown command: ${prefix}`, "Run kunlun-cli help to view commands")
     }
     await matched.route.run({ flags: parsed.flags, rest: matched.rest })
     return 0
@@ -44,25 +44,33 @@ export function formatHelp(routes: Route[]): string {
   const lines = [
     `kunlun-cli ${version}`,
     "",
-    "用法：kunlun-cli <命令> [参数]",
+    "Usage:",
+    "  kunlun-cli <command> [arguments]",
     "",
+    "Commands:",
     ...routes.map((route) => `  ${route.path.join(" ").padEnd(width)}  ${route.summary}`),
     "",
-    "示例：",
+    "Examples:",
     "  kunlun-cli skills install --dir .cursor/skills",
     "  kunlun-cli config init",
     "  kunlun-cli auth scopes",
     "  kunlun-cli auth login",
-    "  kunlun-cli docs template --output .\\操作文档.md",
-    "  kunlun-cli docs create --title 操作文档 --file .\\操作文档.md --dry-run",
-    "  kunlun-cli docs create --title 操作文档 --file .\\操作文档.md",
+    "  kunlun-cli docs template --output ./procedure.md",
+    '  kunlun-cli docs create --title "Procedure" --file ./procedure.md --dry-run',
+    '  kunlun-cli docs create --title "Procedure" --file ./procedure.md',
     "  kunlun-cli docs read --document <document_id>",
-    "  kunlun-cli docs search --query 操作规程",
-    "  kunlun-cli docs read --name 完整文档标题",
+    '  kunlun-cli docs search --query "Procedure"',
+    '  kunlun-cli docs read --name "Exact document title"',
     "",
-    "-v / --version 查看版本（也可用 version）；-h / --help 查看帮助（也可用 help [命令]）。",
-    "长正文用 --file 传入 UTF-8 文件。",
-    "写入命令去掉 --dry-run 后会真实修改云端；配置和登录态保存在当前用户的 ~/.kunlun-cli。",
+    "Flags:",
+    "  -h, --help       Show help",
+    "  -v, --version    Show the version",
+    "",
+    "Notes:",
+    "  Use help [command] for command help, or version to show the version.",
+    "  Pass long content through a UTF-8 file with --file.",
+    "  Document writes modify cloud data unless --dry-run is set.",
+    "  Configuration and sessions are stored in ~/.kunlun-cli by default.",
     "",
   ]
   return lines.join("\n")

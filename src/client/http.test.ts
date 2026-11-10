@@ -27,7 +27,7 @@ test("用户缺少文档授权时给出补充授权命令，保留上游诊断�
       assert.ok(err instanceof CliError)
       assert.match(err.hint ?? "", /kunlun-cli auth login/)
       assert.doesNotMatch(err.hint ?? "", /--scope/)
-      assert.match(err.hint ?? "", /用户身份权限/)
+      assert.match(err.hint ?? "", /user permissions/)
       assert.deepEqual(err.data, { http_status: 400, path: "/open-apis/docx/v1/documents/probe", upstream })
       assert.doesNotMatch(JSON.stringify(err), /secret-token/)
       return true
@@ -54,7 +54,7 @@ test("应用缺少权限与用户未授权给出不同提示", async () => {
   const client = new KunlunClient("https://open.example.com", async () => new Response(JSON.stringify({ code: 99991672, msg: "Access denied" })))
   await assert.rejects(
     () => client.call({ method: "GET", path: "/open-apis/docx/v1/documents/probe" }),
-    (err: unknown) => err instanceof CliError && Boolean(err.hint?.includes("应用缺少接口权限")),
+    (err: unknown) => err instanceof CliError && Boolean(err.hint?.includes("application lacks API permissions")),
   )
 })
 

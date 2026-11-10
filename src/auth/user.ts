@@ -24,16 +24,16 @@ export interface TokenBundle {
 
 export function parseCallback(requestUrl: string, expectedState: string, expectedPath: string): { code: string } {
   const url = new URL(requestUrl, "http://127.0.0.1")
-  if (url.pathname !== expectedPath) throw new CliError("auth", "回调路径不匹配")
+  if (url.pathname !== expectedPath) throw new CliError("auth", "Callback path mismatch")
   const oauthError = url.searchParams.get("error")
   if (oauthError) {
     throw new CliError("auth", url.searchParams.get("error_description") || oauthError)
   }
   if (url.searchParams.get("state") !== expectedState) {
-    throw new CliError("auth", "授权回调的 state 不一致，已拒绝这次登录")
+    throw new CliError("auth", "Authorization callback state mismatch; login was rejected")
   }
   const code = url.searchParams.get("code")
-  if (!code) throw new CliError("auth", "授权回调缺少 code")
+  if (!code) throw new CliError("auth", "The authorization callback is missing code")
   return { code }
 }
 
@@ -41,7 +41,7 @@ export function parseTokenBundle(body: unknown): TokenBundle {
   const record = isRecord(body) ? body : {}
   const data = isRecord(record.data) ? record.data : record
   const accessToken = str(data.access_token)
-  if (!accessToken) throw new CliError("auth", "换票响应缺少 access_token")
+  if (!accessToken) throw new CliError("auth", "The token exchange response is missing access_token")
   return {
     accessToken,
     refreshToken: str(data.refresh_token) ?? "",
@@ -54,11 +54,11 @@ export function parseTokenBundle(body: unknown): TokenBundle {
 export async function getUserToken(dir: string, api: OpenApi, config: Config, secret: string): Promise<string> {
   const session = loadUserSession(dir)
   if (!session?.accessToken) {
-    throw new CliError("auth", "尚未以用户身份登录", "先运行 kunlun-cli auth login，并在浏览器里完成昆仑智联授权")
+    throw new CliError("auth", "Not logged in as a user", "Run kunlun-cli auth login and complete Kunlun authorization in the browser")
   }
   if (isFresh(session.expiresAt)) return session.accessToken
   if (!session.refreshToken || (session.refreshExpiresAt > 0 && session.refreshExpiresAt <= Date.now())) {
-    throw new CliError("auth", "用户登录已过期", "重新运行 kunlun-cli auth login")
+    throw new CliError("auth", "The user session has expired", "Run kunlun-cli auth login again")
   }
   const bundle = await exchangeRefreshToken(api, config, secret, session.refreshToken)
   const next = sessionFromBundle(bundle, session.name, session.openId)
@@ -74,7 +74,7 @@ export async function loginUser(
   options: { openBrowser?: boolean; scope?: string } = {},
 ): Promise<UserSession> {
   if (!config.appId || !secret) {
-    throw new CliError("config", "尚未配置应用", "运行 kunlun-cli config init")
+    throw new CliError("config", "No application is configured", "Run kunlun-cli config init")
   }
   const redirect = new URL(config.redirectUrl)
   const state = newState()
@@ -137,22 +137,22 @@ function waitForCode(redirect: URL, state: string, authorizeUrl: string, autoOpe
     const server = createServer((request, response) => {
       try {
         const result = parseCallback(request.url ?? "/", state, redirect.pathname)
-        respond(response, 200, "授权完成，可以关闭此页面并回到终端。")
+        respond(response, 200, "Authorization complete. You can close this page and return to the terminal.")
         cleanup()
         resolve(result.code)
       } catch (err) {
-        if (err instanceof CliError && err.message === "回调路径不匹配") {
-          respond(response, 404, "未找到")
+        if (err instanceof CliError && err.message === "Callback path mismatch") {
+          respond(response, 404, "Not found")
           return
         }
-        respond(response, 400, err instanceof Error ? err.message : "授权失败")
+        respond(response, 400, err instanceof Error ? err.message : "Authorization failed")
         cleanup()
         reject(err)
       }
     })
     const timer = setTimeout(() => {
       cleanup()
-      reject(new CliError("auth", "等待授权超时", "重新运行 kunlun-cli auth login"))
+      reject(new CliError("auth", "Timed out waiting for authorization", "Run kunlun-cli auth login again"))
     }, 180_000)
     const cleanup = () => {
       clearTimeout(timer)
@@ -160,19 +160,19 @@ function waitForCode(redirect: URL, state: string, authorizeUrl: string, autoOpe
     }
     server.on("error", (err) => {
       cleanup()
-      reject(new CliError("auth", `无法监听授权回调：${err.message}`, configHint(redirect)))
+      reject(new CliError("auth", `Cannot listen for the authorization callback: ${err.message}`, configHint(redirect)))
     })
     server.listen(Number(redirect.port), redirect.hostname, () => {
-      console.error("请在浏览器中完成昆仑智联授权。")
-      console.error("如果浏览器没有自动打开，请访问：")
+      console.error("Complete Kunlun authorization in your browser.")
+      console.error("If the browser did not open, visit:")
       console.error(authorizeUrl)
       if (shouldOpenBrowser(autoOpenBrowser)) {
         const opened = openBrowser(authorizeUrl)
         if (!opened) {
-          console.error("[kunlun-cli] 未能自动打开浏览器，请手动复制上面的链接。")
+          console.error("[kunlun-cli] Could not open the browser. Open the URL above manually.")
         }
       } else {
-        console.error("[kunlun-cli] 已跳过自动打开浏览器（--no-browser、KUNLUN_NO_BROWSER=1 或 SSH 环境）。")
+        console.error("[kunlun-cli] Skipped opening the browser (--no-browser, KUNLUN_NO_BROWSER=1, or SSH).")
       }
     })
   })
@@ -188,5 +188,5 @@ function escapeHtml(text: string): string {
 }
 
 function configHint(redirect: URL): string {
-  return `确认 ${redirect.origin} 没有被其它程序占用，且已把 ${redirect.href} 配进昆仑开发者后台的重定向 URL`
+  return `Ensure ${redirect.origin} is not in use and ${redirect.href} is registered as a redirect URL in the Kunlun developer console`
 }

@@ -108,7 +108,7 @@ test("搜索上游权限错误保留诊断，不回退 bot、不自动重新登�
     } }])
     assert.equal(result.code, 1)
     assert.equal(result.payload.error.type, "api")
-    assert.match(result.payload.error.hint, /固定权限/)
+    assert.match(result.payload.error.hint, /fixed release scopes/)
     assert.equal(result.requests.length, 1)
     assert.doesNotMatch(JSON.stringify(result.payload), /test-user-token|test-secret/)
   })

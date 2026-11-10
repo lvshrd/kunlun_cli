@@ -16,30 +16,30 @@ import type { Invocation, Route } from "../route.ts"
 
 export function configRoutes(): Route[] {
   return [
-    { path: ["config", "init"], summary: "保存应用 ID、密钥和昆仑智联地址", run: initConfig },
-    { path: ["config", "show"], summary: "查看当前配置，不显示密钥", run: showConfig },
+    { path: ["config", "init"], summary: "Save the application ID, secret, and Kunlun endpoints", run: initConfig },
+    { path: ["config", "show"], summary: "Show the current configuration without exposing the secret", run: showConfig },
   ]
 }
 
 async function initConfig(invocation: Invocation): Promise<void> {
-  if (invocation.rest.length > 0) throw new CliError("usage", "config init 不接受额外参数")
+  if (invocation.rest.length > 0) throw new CliError("usage", "config init does not accept additional parameters")
   const dir = configDir()
   const current = loadEffectiveConfig(dir)
-  if (invocation.flags["app-secret"] !== undefined) throw new CliError("usage", "不要通过命令行参数传入 Secret", "使用交互式 config init，或 --app-secret-stdin")
+  if (invocation.flags["app-secret"] !== undefined) throw new CliError("usage", "Do not pass App Secret as a command-line argument", "Use interactive config init or --app-secret-stdin")
   const fromStdin = boolFlag(invocation.flags, "app-secret-stdin")
   let appId = strFlag(invocation.flags, "app-id")
   let secret: string
   if (fromStdin) {
-    if (!appId) throw new CliError("usage", "--app-secret-stdin 需要同时指定 --app-id")
+    if (!appId) throw new CliError("usage", "--app-secret-stdin requires --app-id to be specified")
     secret = readFileSync(0, "utf8").trim()
   } else {
-    if (!process.stdin.isTTY) throw new CliError("usage", "交互配置需要终端", "脚本使用 config init --app-id <ID> --app-secret-stdin")
-    console.error("昆仑智联应用配置：依次输入 App ID 和 App Secret，按回车继续；Ctrl+C 取消。")
-    appId ??= await promptValue(`请输入 App ID${current.appId ? ` [回车沿用 ${current.appId}]` : ""}: `) || current.appId
-    if (!appId) throw new CliError("usage", "App ID 不能为空")
-    secret = await promptValue("请输入 App Secret（输入不回显，粘贴后按回车）: ", true)
+    if (!process.stdin.isTTY) throw new CliError("usage", "Interactive configuration requires a terminal", "For scripts, use config init --app-id <ID> --app-secret-stdin")
+    console.error("Kunlun application setup: enter App ID and App Secret. Press Enter to continue or Ctrl+C to cancel.")
+    appId ??= await promptValue(`Enter App ID${current.appId ? ` [press Enter to use ${current.appId}]` : ""}: `) || current.appId
+    if (!appId) throw new CliError("usage", "App ID cannot be empty")
+    secret = await promptValue("Enter App Secret (hidden; paste and press Enter): ", true)
   }
-  if (!secret) throw new CliError("config", "App Secret 不能为空，未保存")
+  if (!secret) throw new CliError("config", "App Secret must not be empty; nothing was saved")
   const next: Config = {
     appId,
     openBaseUrl: strFlag(invocation.flags, "open-base-url") || current.openBaseUrl,
@@ -68,7 +68,7 @@ async function initConfig(invocation: Invocation): Promise<void> {
 }
 
 async function showConfig(invocation: Invocation): Promise<void> {
-  if (invocation.rest.length > 0) throw new CliError("usage", "config show 不接受额外参数")
+  if (invocation.rest.length > 0) throw new CliError("usage", "config show does not accept additional parameters")
   const dir = configDir()
   const config = loadEffectiveConfig(dir)
   printOk({

@@ -44,7 +44,7 @@ export class KunlunClient implements OpenApi {
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      throw new CliError("network", `请求昆仑智联失败：${message}`, url.origin + url.pathname)
+      throw new CliError("network", `Kunlun request failed: ${message}`, url.origin + url.pathname)
     }
     const text = await response.text()
     const parsed = parseBody(text)
@@ -61,11 +61,11 @@ export class KunlunClient implements OpenApi {
 
   private resolve(apiPath: string, query?: Record<string, string>): URL {
     if (!apiPath.startsWith("/") || apiPath.startsWith("//")) {
-      throw new CliError("usage", "接口路径必须以 / 开头", "例如 /open-apis/docx/v1/documents")
+      throw new CliError("usage", "API paths must start with /", "For example: /open-apis/docx/v1/documents")
     }
     const url = new URL(apiPath, this.openBaseUrl)
     if (url.origin !== new URL(this.openBaseUrl).origin) {
-      throw new CliError("usage", "接口路径不能跳到其它主机")
+      throw new CliError("usage", "API paths must stay on the configured origin")
     }
     if (query) {
       for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value)
@@ -84,12 +84,12 @@ function permissionHint(body: unknown): string | undefined {
       .map((item) => isRecord(item) ? str(item.subject) : undefined)
       .filter((scope): scope is string => Boolean(scope && /^[a-zA-Z0-9_:.-]+$/.test(scope))))]
     if (scopes.some((scope) => supportedUserScopes.includes(scope))) {
-      return "用户授权不足，接口返回的候选权限包含本版本支持项。确认应用后台的用户身份权限已生效后，可运行 kunlun-cli auth login 按本版本固定权限重新授权；若仍失败，停止重试并联系维护者核实权限组合。不要照抄上游 scope 扩大授权，刷新 token 不会自动增加授权范围。"
+      return "User authorization is insufficient; the API lists scopes supported by this release. Confirm that the application has the required user permissions, then run kunlun-cli auth login to authorize the fixed release scopes. If the request still fails, stop retrying and contact the maintainer. Do not add scopes from upstream errors; refreshing a token does not expand authorization."
     }
-    return "无法从接口返回的权限中确认本版本支持项。运行 kunlun-cli auth scopes 查看版本权限，联系维护者核实接口及权限并在需要时发布新版；不要猜测 scope 或反复重新授权。"
+    return "The API did not identify a scope supported by this release. Run kunlun-cli auth scopes and contact the maintainer to verify the API and permissions. A new release may be required; do not guess scopes or repeatedly authorize."
   }
   if (body.code === 99991672) {
-    return "应用缺少接口权限。请由维护者在昆仑开发者后台检查当前调用身份对应的权限，并确认权限已生效；需审核的权限须发布版本并审核通过。需要新增权限时同步更新 CLI release，生效后再运行 kunlun-cli auth login；不要临时追加 scope 或反复重试授权。"
+    return "The application lacks API permissions. Ask the maintainer to verify permissions for the current identity in the Kunlun developer console and complete any required review. New scopes must be included in a CLI release before running kunlun-cli auth login again. Do not add ad hoc scopes or repeatedly authorize."
   }
   return undefined
 }
@@ -106,12 +106,12 @@ function parseBody(text: string): unknown {
 function failureOf(status: number, body: unknown): string | undefined {
   if (isRecord(body)) {
     if (typeof body.code === "number" && body.code !== 0) {
-      return str(body.msg) || str(body.message) || `昆仑智联返回错误码 ${body.code}`
+      return str(body.msg) || str(body.message) || `Kunlun returned error code ${body.code}`
     }
     if (num(body.code) === undefined && typeof body.error === "string" && body.error) {
       return str(body.error_description) || body.error
     }
   }
-  if (status >= 400) return `昆仑智联返回 HTTP ${status}`
+  if (status >= 400) return `Kunlun returned HTTP ${status}`
   return undefined
 }

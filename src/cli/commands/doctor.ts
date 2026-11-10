@@ -9,12 +9,12 @@ import type { Invocation, Route } from "../route.ts"
 
 export function doctorRoutes(): Route[] {
   return [
-    { path: ["doctor"], summary: "检查开放平台、账号域、应用凭证和用户登录态", run: doctor },
+    { path: ["doctor"], summary: "Check platform endpoints, application credentials, and the user session", run: doctor },
   ]
 }
 
 async function doctor(invocation: Invocation): Promise<void> {
-  if (invocation.rest.length > 0) throw new CliError("usage", "doctor 不接受额外参数")
+  if (invocation.rest.length > 0) throw new CliError("usage", "doctor does not accept additional arguments")
   const dir = configDir()
   const config = loadEffectiveConfig(dir)
   const secret = loadSecret(dir)

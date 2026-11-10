@@ -14,7 +14,7 @@ export function installSkills(directory: string, force = false, dryRun = false):
   const destinations = names.map((name) => path.join(root, name))
   for (const destination of destinations) {
     if (existsSync(destination) && (lstatSync(destination).isSymbolicLink() || !force)) {
-      throw new CliError("usage", "目标 Skill 已存在，未覆盖", "确认需要更新时使用 --force；符号链接目标不支持覆盖")
+      throw new CliError("usage", "The destination skill already exists; it was not overwritten", "Use --force to update existing skills; symbolic link destinations cannot be overwritten")
     }
   }
   if (!dryRun) {
@@ -25,13 +25,13 @@ export function installSkills(directory: string, force = false, dryRun = false):
 }
 
 export function skillsRoutes(): Route[] {
-  return [{ path: ["skills", "install"], summary: "将自然语言文档 Skill 安装到 Agent 的技能目录（--dir）", run: install }]
+  return [{ path: ["skills", "install"], summary: "Install document skills into the agent skill directory (--dir)", run: install }]
 }
 
 async function install(invocation: Invocation): Promise<void> {
-  if (invocation.rest.length) throw new CliError("usage", "skills install 不接受位置参数")
+  if (invocation.rest.length) throw new CliError("usage", "skills install does not accept positional arguments")
   const directory = strFlag(invocation.flags, "dir")
-  if (!directory) throw new CliError("usage", "缺少 --dir", "例如 kunlun-cli skills install --dir .cursor/skills")
+  if (!directory) throw new CliError("usage", "Missing --dir", "For example: kunlun-cli skills install --dir .cursor/skills")
   const dryRun = boolFlag(invocation.flags, "dry-run")
-  printOk({ dry_run: dryRun, directories: installSkills(directory, boolFlag(invocation.flags, "force"), dryRun), next: "重新打开 Agent 对话，要求使用 kunlun-doc 操作本人文档" })
+  printOk({ dry_run: dryRun, directories: installSkills(directory, boolFlag(invocation.flags, "force"), dryRun), next: "Start a new agent conversation and use kunlun-doc to work with your documents" })
 }

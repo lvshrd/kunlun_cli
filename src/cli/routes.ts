@@ -19,9 +19,9 @@ export function allRoutes(): Route[] {
     ...skillsRoutes(),
     {
       path: ["version"],
-      summary: "显示版本",
+      summary: "Show the version",
       run: async (invocation) => {
-        if (invocation.rest.length || Object.keys(invocation.flags).length) throw new CliError("usage", "version 不接受额外参数", "运行 kunlun-cli -v 或 kunlun-cli --version 查看版本")
+        if (invocation.rest.length || Object.keys(invocation.flags).length) throw new CliError("usage", "version does not accept additional arguments", "Run kunlun-cli -v or kunlun-cli --version to view the version")
         printOk({ version })
       },
     },

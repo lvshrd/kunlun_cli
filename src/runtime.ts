@@ -16,8 +16,8 @@ export function requireApp(): AppContext {
   if (!config.appId || !secret) {
     throw new CliError(
       "config",
-      "尚未配置昆仑智联应用",
-      "运行 kunlun-cli config init",
+      "No Kunlun application is configured",
+      "Run kunlun-cli config init",
     )
   }
   return { dir, config, secret, client: new KunlunClient(config.openBaseUrl) }

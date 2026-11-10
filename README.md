@@ -8,6 +8,8 @@ npm 包名为 **[@lvshrd/kunlun-cli](https://www.npmjs.com/package/@lvshrd/kunlu
 
 查看版本用 `kunlun-cli -v` 或 `kunlun-cli --version`，也支持 `kunlun-cli version`。查看帮助用 `-h` / `--help`，也支持 `kunlun-cli help`；`kunlun-cli help docs` 与 `kunlun-cli docs --help` 查看同一组文档命令。版本输出为 JSON，帮助输出为文本。
 
+CLI 自身生成的帮助、交互提示、错误消息及修复建议统一使用英文。平台返回的原始错误、用户文档内容和中文示例模板保留原语言；JSON 字段名及错误类型保持稳定。
+
 ## 安装与更新
 
 Windows、macOS 和 Linux 均通过 npm 安装：

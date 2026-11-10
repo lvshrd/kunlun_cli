@@ -16,7 +16,7 @@ test("帮助里包含文档命令", () => {
     { path: ["docs", "create"], summary: "创建云文档", run: async () => {} },
   ])
   assert.match(help, /docs create/)
-  assert.match(help, /用法：kunlun-cli <命令>/)
+  assert.match(help, /kunlun-cli <command> \[arguments\]/)
   assert.doesNotMatch(help, /\bkunlun\s/)
 })
 
@@ -65,6 +65,20 @@ test("短选项规范化后拒绝重复，未知帮助目标和额外版本参�
   }
   assert.deepEqual(parseArgs(["--", "-v"]).positionals, ["-v"])
   assert.equal(parseArgs(["--content", "-1"]).flags.content, "-1")
+})
+
+test("所有命令帮助和本地参数错误使用英文", async () => {
+  const help = await capture(() => run(["--help"]))
+  assert.equal(help.code, 0)
+  assert.doesNotMatch(help.stdout, /\p{Script=Han}/u)
+  for (const args of [["missing"], ["-x"], ["version", "extra"], ["auth", "login", "--scope="]]) {
+    const result = await capture(() => run(args))
+    assert.equal(result.code, 1)
+    const payload = JSON.parse(result.stdout)
+    assert.equal(payload.error.type, "usage")
+    assert.doesNotMatch(payload.error.message, /\p{Script=Han}/u)
+    assert.doesNotMatch(payload.error.hint ?? "", /\p{Script=Han}/u)
+  }
 })
 
 async function capture(runCommand: () => Promise<number>): Promise<{ code: number; stdout: string }> {

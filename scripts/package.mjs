@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { packProject, projectRoot } from "./package-lib.mjs"
 
-if (process.argv.length > 2) throw new Error("仅提供统一发行包，运行 npm run package")
+if (process.argv.length > 2) throw new Error("Only the unified distribution is supported; run npm run package")
 const release = path.join(projectRoot, "release")
 mkdirSync(release, { recursive: true })
 const packed = packProject(release)

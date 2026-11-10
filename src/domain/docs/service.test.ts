@@ -128,7 +128,7 @@ test("后续页网络失败保留前页内容、原错误类型与修复提示",
 
 test("缺少版本时停止读取，不以混合版本拼接全文", async () => {
   let calls = 0
-  await assert.rejects(() => readDocument({ async call() { calls++; return { data: {} } } }, "token", "dox"), /无法获取文档版本/)
+  await assert.rejects(() => readDocument({ async call() { calls++; return { data: {} } } }, "token", "dox"), /Cannot determine the document revision/)
   assert.equal(calls, 1)
 })
 

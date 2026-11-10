@@ -32,7 +32,7 @@ export function blocksToMarkdown(blocks: unknown[]): string {
 }
 
 export function chunk<T>(items: T[], size: number): T[][] {
-  if (size < 1) throw new Error("批次大小必须大于 0")
+  if (size < 1) throw new Error("Batch size must be greater than 0")
   const batches: T[][] = []
   for (let i = 0; i < items.length; i += size) batches.push(items.slice(i, i + size))
   return batches

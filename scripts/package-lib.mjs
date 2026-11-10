@@ -10,7 +10,7 @@ export const manifest = JSON.parse(readFileSync(path.join(projectRoot, "package.
 
 export function runNpm(args, options = {}) {
   const npmCli = process.env.npm_execpath
-  if (!npmCli) throw new Error("请通过 npm run package 或 npm run test:package 执行")
+  if (!npmCli) throw new Error("Run this script via npm run package or npm run test:package")
   const result = spawnSync(process.execPath, [npmCli, ...args], {
     cwd: projectRoot,
     encoding: "utf8",
@@ -18,21 +18,21 @@ export function runNpm(args, options = {}) {
     ...options,
   })
   if (result.error) throw result.error
-  if (result.status !== 0) throw new Error(`npm ${args.join(" ")} 失败：\n${result.stdout}\n${result.stderr}`)
+  if (result.status !== 0) throw new Error(`npm ${args.join(" ")} failed:\n${result.stdout}\n${result.stderr}`)
   return result.stdout
 }
 
 function validateFiles(packed) {
   const names = packed.files.map((file) => file.path)
   for (const required of ["dist/main.js", "dist/domain/docs/template.js", "README.md", "skills/kunlun-doc/SKILL.md", "skills/kunlun-shared/SKILL.md"]) {
-    assert.ok(names.includes(required), `安装包缺少 ${required}`)
+    assert.ok(names.includes(required), `Package is missing ${required}`)
   }
   for (const name of names) {
     const allowed = name === "package.json" || name === "README.md" || /^dist\/.+\.js$/.test(name)
       || /^skills\/.+\.md$/.test(name)
-    assert.ok(allowed, `安装包包含未允许的文件：${name}`)
-    assert.ok(!name.includes(".test.") && !/(^|\/)(app-secret|user-session\.json|bot-token\.json|config\.json)$/.test(name), `安装包混入测试或凭证：${name}`)
-    assert.ok(!name.endsWith("/bundled.js"), "统一包不能含旧内置凭证模块")
+    assert.ok(allowed, `Package contains an unexpected file: ${name}`)
+    assert.ok(!name.includes(".test.") && !/(^|\/)(app-secret|user-session\.json|bot-token\.json|config\.json)$/.test(name), `Package contains tests or credentials: ${name}`)
+    assert.ok(!name.endsWith("/bundled.js"), "The package must not contain a legacy bundled credentials module")
   }
 }
 

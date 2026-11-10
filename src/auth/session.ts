@@ -69,7 +69,7 @@ function readJson(file: string): unknown {
   try {
     return JSON.parse(readFileSync(file, "utf8"))
   } catch {
-    throw new CliError("auth", "本地登录态文件损坏", `删除 ${file} 后重新登录`)
+    throw new CliError("auth", "The local session file is invalid", `Delete ${file}, then log in again`)
   }
 }
 

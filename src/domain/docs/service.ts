@@ -26,14 +26,14 @@ export async function createDocument(
     body,
   })
   const documentId = documentIdOf(created)
-  if (!documentId) throw new CliError("api", "创建文档成功但响应里没有 document_id", undefined, { upstream: created })
+  if (!documentId) throw new CliError("api", "The document was created, but the response is missing document_id", undefined, { upstream: created })
   const blocks = contentToBlocks(input.content)
   if (blocks.length > 0) {
     try {
       await appendBlocks(api, token, documentId, blocks)
     } catch (err) {
       if (err instanceof CliError) {
-        throw new CliError(err.type, `文档已创建，但写入正文失败：${err.message}`, err.hint, {
+        throw new CliError(err.type, `The document was created, but writing its content failed: ${err.message}`, err.hint, {
           ...(isRecord(err.data) ? err.data : {}),
           document_id: documentId,
         })
@@ -46,7 +46,7 @@ export async function createDocument(
 
 export async function appendDocument(api: OpenApi, token: string, documentId: string, content: string): Promise<number> {
   const blocks = contentToBlocks(content)
-  if (blocks.length === 0) throw new CliError("usage", "没有可写入的正文")
+  if (blocks.length === 0) throw new CliError("usage", "No document content to write")
   await appendBlocks(api, token, documentId, blocks)
   return blocks.length
 }
@@ -58,7 +58,7 @@ export async function readDocument(api: OpenApi, token: string, documentId: stri
   const document = isRecord(metaData.document) ? metaData.document : {}
   const revision = document.revision_id
   if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 0) {
-    throw new CliError("api", "无法获取文档版本，停止读取", "确认接口返回有效的 revision_id 后重试")
+    throw new CliError("api", "Cannot determine the document revision; reading was stopped", "Verify that the API returns a valid revision_id before retrying")
   }
   const items: unknown[] = []
   let pageToken = ""
@@ -76,8 +76,8 @@ export async function readDocument(api: OpenApi, token: string, documentId: stri
   }
   const incomplete = (reason: string, cause?: unknown) => {
     const { blockCount, ...partial } = result(false)
-    return new CliError("incomplete", "文档未完整读取，不能当作全文使用",
-      cause instanceof CliError && cause.hint ? cause.hint : "仅可使用已返回的部分内容；不要据此删除、重建文档或断言未返回的内容不存在。", {
+    return new CliError("incomplete", "The document was not fully read; do not treat the result as the full document",
+      cause instanceof CliError && cause.hint ? cause.hint : "Use only the returned partial content. Do not delete or rebuild the document, or assume that missing content does not exist.", {
         ...partial, block_count: blockCount, document_id: documentId, reason,
         ...(cause instanceof CliError ? { cause: { type: cause.type, message: cause.message } } : {}),
       })

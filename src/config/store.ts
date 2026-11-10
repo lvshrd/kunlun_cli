@@ -30,10 +30,10 @@ export function readConfigFile(dir: string): Partial<Config> {
   try {
     parsed = JSON.parse(readFileSync(file, "utf8"))
   } catch {
-    throw new CliError("config", "config.json 无法解析", file)
+    throw new CliError("config", "Cannot parse config.json", file)
   }
   if (!parsed || typeof parsed !== "object") {
-    throw new CliError("config", "config.json 格式不正确", file)
+    throw new CliError("config", "Invalid config.json format", file)
   }
   const raw = parsed as Record<string, unknown>
   const result: Partial<Config> = {}
@@ -77,7 +77,7 @@ export function loadSecret(dir: string, env: NodeJS.ProcessEnv = process.env): s
 
 export function saveSecret(dir: string, secret: string): void {
   const trimmed = secret.trim()
-  if (!trimmed) throw new CliError("config", "App Secret 不能为空")
+  if (!trimmed) throw new CliError("config", "App Secret must not be empty")
   mkdirSync(dir, { recursive: true })
   writeFileSync(path.join(dir, "app-secret"), trimmed, { encoding: "utf8", mode: 0o600 })
 }
@@ -103,14 +103,14 @@ export function httpsOrigin(raw: string, name: string): string {
   try {
     url = new URL(raw.trim())
   } catch {
-    throw new CliError("config", `${name} 不是合法 URL`)
+    throw new CliError("config", `${name} must be a valid URL`)
   }
-  if (url.protocol !== "https:") throw new CliError("config", `${name} 必须使用 https`)
+  if (url.protocol !== "https:") throw new CliError("config", `${name} must use HTTPS`)
   if (url.username || url.password || url.search || url.hash) {
-    throw new CliError("config", `${name} 只能是源站地址`)
+    throw new CliError("config", `${name} must be an origin without credentials, query parameters, or fragments`)
   }
   if (url.pathname !== "/" && url.pathname !== "") {
-    throw new CliError("config", `${name} 不能带路径`)
+    throw new CliError("config", `${name} must not include a path`)
   }
   return url.origin
 }
@@ -120,15 +120,15 @@ export function loopbackRedirect(raw: string): string {
   try {
     url = new URL(raw.trim())
   } catch {
-    throw new CliError("config", "redirect_url 不是合法 URL")
+    throw new CliError("config", "redirect_url must be a valid URL")
   }
-  if (url.protocol !== "http:") throw new CliError("config", "redirect_url 必须是 http，供本机接收授权回调")
+  if (url.protocol !== "http:") throw new CliError("config", "redirect_url must use HTTP for the local authorization callback")
   if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") {
-    throw new CliError("config", "redirect_url 必须指向 127.0.0.1 或 localhost")
+    throw new CliError("config", "redirect_url must point to 127.0.0.1 or localhost")
   }
-  if (!url.port) throw new CliError("config", "redirect_url 必须带端口，例如 http://127.0.0.1:19876/callback")
+  if (!url.port) throw new CliError("config", "redirect_url must include a port, for example http://127.0.0.1:19876/callback")
   if (url.username || url.password || url.search || url.hash) {
-    throw new CliError("config", "redirect_url 不能包含账号、查询参数或片段")
+    throw new CliError("config", "redirect_url must not include credentials, query parameters, or fragments")
   }
   return url.toString()
 }

@@ -10,10 +10,10 @@ import type { Invocation, Route } from "../route.ts"
 
 export function authRoutes(): Route[] {
   return [
-    { path: ["auth", "login"], summary: "浏览器登录，默认请求本版本固定权限；--scope 仅可选子集；--no-browser", run: login },
-    { path: ["auth", "scopes"], summary: "查看本版本允许的用户授权权限（本地查询）", run: scopes },
-    { path: ["auth", "status"], summary: "查看用户登录态，不显示 token", run: status },
-    { path: ["auth", "logout"], summary: "清除本机用户登录态", run: logout },
+    { path: ["auth", "login"], summary: "Log in with the fixed release scopes; --scope selects a subset; --no-browser skips opening the browser", run: login },
+    { path: ["auth", "scopes"], summary: "List supported user scopes without network access", run: scopes },
+    { path: ["auth", "status"], summary: "Show the user session without exposing tokens", run: status },
+    { path: ["auth", "logout"], summary: "Clear the local user session", run: logout },
   ]
 }
 
@@ -46,10 +46,10 @@ async function scopes(invocation: Invocation): Promise<void> {
 }
 
 function validateInvocation(invocation: Invocation, command: string, allowed: string[] = []): void {
-  if (invocation.rest.length > 0) throw new CliError("usage", `auth ${command} 不接受额外参数`)
+  if (invocation.rest.length > 0) throw new CliError("usage", `auth ${command} does not accept additional parameters`)
   const unknown = Object.keys(invocation.flags).filter((name) => !allowed.includes(name))
   if (unknown.length > 0) {
-    throw new CliError("usage", `auth ${command} 不支持参数：${unknown.map((name) => `--${name}`).join("、")}`, "运行 kunlun-cli auth --help 查看用法。", {
+    throw new CliError("usage", `auth ${command} does not support options: ${unknown.map((name) => `--${name}`).join(", ")}`, "Run kunlun-cli auth --help to view usage.", {
       reason: "unsupported_flags", unsupported_flags: unknown,
     })
   }

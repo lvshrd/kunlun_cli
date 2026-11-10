@@ -17,7 +17,7 @@ export function promptValue(label: string, hidden = false, input: Readable = pro
       settled = true
       rl.close()
       if (hidden) { output.write("\n"); (sink as Writable).end() }
-      if (value === undefined) reject(new CliError("usage", "已取消应用配置，未保存"))
+      if (value === undefined) reject(new CliError("usage", "Application configuration cancelled; nothing was saved"))
       else resolve(value.trim())
     }
     rl.once("SIGINT", () => finish())

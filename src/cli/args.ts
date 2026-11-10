@@ -20,7 +20,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     if (token === "-v") token = "--version"
     else if (token === "-h") token = "--help"
     else if (/^-[^-]/.test(token)) {
-      throw new CliError("usage", `不支持短参数 ${token}`, "查看版本用 -v / --version，查看帮助用 -h / --help；正文中的参数样式文本可使用 --content=<内容>。")
+      throw new CliError("usage", `Unsupported short option: ${token}`, "Use -v / --version for the version or -h / --help for help. Use --content=<text> for content that looks like an option.")
     }
     if (!token.startsWith("--")) {
       positionals.push(token)
@@ -29,11 +29,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
     const eq = token.indexOf("=")
     const name = eq === -1 ? token.slice(2) : token.slice(2, eq)
     const inline = eq === -1 ? undefined : token.slice(eq + 1)
-    if (!name) throw new CliError("usage", "参数名不能为空")
-    if (Object.hasOwn(flags, name)) throw new CliError("usage", `参数 --${name} 不能重复`, "多个 scope 放在同一个 --scope 值中，用空格分隔。")
+    if (!name) throw new CliError("usage", "Option names must not be empty")
+    if (Object.hasOwn(flags, name)) throw new CliError("usage", `Option --${name} must not be repeated`, "Pass multiple scopes in a single --scope value, separated by spaces.")
     if (BOOLEAN_FLAGS.has(name)) {
       if (inline !== undefined && inline !== "true" && inline !== "false") {
-        throw new CliError("usage", `--${name} 是开关，不能赋值 ${inline}`)
+        throw new CliError("usage", `--${name} is a boolean option; invalid value: ${inline}`)
       }
       flags[name] = inline !== "false"
       continue
@@ -42,7 +42,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     if (value === undefined) {
       const next = argv[i + 1]
       if (next === undefined || next.startsWith("--")) {
-        throw new CliError("usage", `--${name} 需要一个值`)
+        throw new CliError("usage", `--${name} requires a value`)
       }
       value = next
       i++
