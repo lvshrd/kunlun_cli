@@ -7,7 +7,7 @@ description: "通过本机 kunlun-cli 创建、读取和编辑昆仑智联表格
 
 身份与配置遵循 [kunlun-shared](../kunlun-shared/SKILL.md)。默认本人 user；不因权限不足自动切 bot。命令与输入格式见[参考](references/commands.md)。
 
-创建带表格的文档时，先用 docs create 创建文档，再用 `docs tables create --document <ID> --type native|sheet|bitable` 分别创建并嵌入三类表格。native 可从二维 values 直接创建内容；sheet / bitable 创建为空资源，继续用返回的ID和现有命令填充。完整步骤与JSON样例见[创建含三类表格的文档](references/create-with-tables.md)，此类请求必须读取该参考；不要误报“未封装创建/嵌入”。
+0.2.2起，创建带表格的文档时先用docs create创建文档，再用 `docs tables create --document <ID> --type native|sheet|bitable` 分别创建并嵌入三类表格；0.2.1仅提供已有表格CRUD。native可从二维values直接创建内容；sheet/bitable创建为空资源，继续用返回的ID填充。完整步骤见[创建含三类表格的文档](references/create-with-tables.md)，此类请求必须读取该参考并核对实际版本。
 
 已有资源先确认类型：`/sheets/` 使用 sheets 命令，`/base/` 使用 bitable 命令。DocX 链接先 `docs read --document ...`，查看 resources：sheets 引用提供 spreadsheet_token / sheet_id，bitable 提供 app_token / table_id，docx_table 使用 `docs tables read/write --table <block_id>`。原生DocX表格只支持简单未合并单元格文字；board目前只有资源识别。不要从未知界面名称猜测接口，也不把wiki token直接用于表格命令。
 
