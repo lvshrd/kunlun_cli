@@ -13,7 +13,7 @@ const config: Config = {
   webBaseUrl: "",
 }
 
-test("默认登录请求本版本固定的四项业务权限", () => {
+test("默认登录请求本版本固定的文档与表格业务权限", () => {
   const url = new URL(buildAuthorizeUrl(config, "state-1"))
   assert.equal(url.origin, "https://accounts.example.com")
   assert.equal(url.pathname, "/open-apis/authen/v1/authorize")
@@ -22,7 +22,7 @@ test("默认登录请求本版本固定的四项业务权限", () => {
   assert.equal(url.searchParams.get("response_type"), "code")
   assert.equal(url.searchParams.get("state"), "state-1")
   assert.equal(url.searchParams.get("app_id"), null)
-  assert.equal(url.searchParams.get("scope"), "docx:document drive:drive.metadata:readonly drive:drive:readonly space:document:retrieve")
+  assert.equal(url.searchParams.get("scope"), "docx:document drive:drive.metadata:readonly drive:drive:readonly space:document:retrieve sheets:spreadsheet bitable:app")
 })
 
 test("文档授权链接保留并编码业务权限，去重且规范空白", () => {

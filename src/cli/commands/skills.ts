@@ -6,7 +6,7 @@ import { printOk } from "../../output/envelope.ts"
 import { boolFlag, strFlag } from "../args.ts"
 import type { Invocation, Route } from "../route.ts"
 
-const names = ["kunlun-shared", "kunlun-doc"]
+const names = ["kunlun-shared", "kunlun-doc", "kunlun-tables"]
 
 export function installSkills(directory: string, force = false, dryRun = false): string[] {
   const root = path.resolve(directory)
@@ -25,7 +25,7 @@ export function installSkills(directory: string, force = false, dryRun = false):
 }
 
 export function skillsRoutes(): Route[] {
-  return [{ path: ["skills", "install"], summary: "Install document skills into the agent skill directory (--dir)", run: install }]
+  return [{ path: ["skills", "install"], summary: "Install document and table skills into the agent skill directory (--dir)", run: install }]
 }
 
 async function install(invocation: Invocation): Promise<void> {
@@ -33,5 +33,5 @@ async function install(invocation: Invocation): Promise<void> {
   const directory = strFlag(invocation.flags, "dir")
   if (!directory) throw new CliError("usage", "Missing --dir", "For example: kunlun-cli skills install --dir .cursor/skills")
   const dryRun = boolFlag(invocation.flags, "dry-run")
-  printOk({ dry_run: dryRun, directories: installSkills(directory, boolFlag(invocation.flags, "force"), dryRun), next: "Start a new agent conversation and use kunlun-doc to work with your documents" })
+  printOk({ dry_run: dryRun, directories: installSkills(directory, boolFlag(invocation.flags, "force"), dryRun), next: "Start a new agent conversation; use kunlun-doc for documents or kunlun-tables for spreadsheets and Base" })
 }

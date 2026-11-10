@@ -49,7 +49,7 @@ test("真实 CLI 在启动授权前拒绝非法参数且保留已有凭证和登
     assert.equal(result.status, 0)
     const data = JSON.parse(result.stdout).data
     assert.equal(data.source, "release")
-    assert.deepEqual(data.allowed_scopes, ["docx:document", "drive:drive.metadata:readonly", "drive:drive:readonly", "space:document:retrieve"])
+    assert.deepEqual(data.allowed_scopes, ["docx:document", "drive:drive.metadata:readonly", "drive:drive:readonly", "space:document:retrieve", "sheets:spreadsheet", "bitable:app"])
     assert.deepEqual(data.default_scopes, data.allowed_scopes)
   } finally {
     rmSync(dir, { recursive: true, force: true })

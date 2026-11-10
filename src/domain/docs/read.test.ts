@@ -2,6 +2,24 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { inspectBlocks } from "./read.ts"
 
+test("embedded resources expose adapter targets without claiming their content was read", () => {
+  const result = inspectBlocks([
+    { block_id: "s", block_type: 30, sheet: { token: "sht_with_underscore_sheet1" } },
+    { block_id: "b", block_type: 18, bitable: { token: "base1_tbl1" } },
+    { block_id: "w", block_type: 43, board: { token: "board1" } },
+    { block_id: "t", block_type: 31, table: {} },
+    { block_id: "bad", block_type: 30, sheet: { token: "malformed" } },
+  ])
+  assert.equal(result.resources[0]?.spreadsheet_token, "sht_with_underscore")
+  assert.equal(result.resources[0]?.sheet_id, "sheet1")
+  assert.equal(result.resources[1]?.table_id, "tbl1")
+  assert.equal(result.resources[2]?.whiteboard_id, "board1")
+  assert.equal(result.resources[3]?.kind, "docx_table")
+  assert.equal(result.resources[4]?.spreadsheet_token, undefined)
+  assert.equal(result.diagnostics.length, 5)
+  assert.equal(result.markdown, "")
+})
+
 test("混合段落、列表、表格与容器：保留关系并逐块报告省略", () => {
   const result = inspectBlocks([
     { block_id: "root", block_type: 1, children: ["text", "list", "table"], page: { elements: [{ text_run: { content: "文档" } }] } },

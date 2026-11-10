@@ -70,7 +70,7 @@ export async function readDocument(api: OpenApi, token: string, documentId: stri
       markdown: converted.markdown, blockCount: items.length, revision,
       pagination_complete: paginationComplete, content_complete: converted.diagnostics.length === 0,
       complete: paginationComplete && converted.diagnostics.length === 0,
-      pages_read: pagesRead, diagnostics: converted.diagnostics, blocks: converted.blocks,
+      pages_read: pagesRead, diagnostics: converted.diagnostics, blocks: converted.blocks, resources: converted.resources,
       ...(options.raw ? { raw_blocks: items } : {}),
     }
   }

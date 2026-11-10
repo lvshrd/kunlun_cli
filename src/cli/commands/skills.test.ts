@@ -13,6 +13,7 @@ test("Agent Skill 支持预览，默认保留已有文件，显式更新才覆�
     assert.equal(existsSync(target), false)
     installSkills(target)
     assert.match(readFileSync(path.join(destinations[1]!, "SKILL.md"), "utf8"), /kunlun-doc/)
+    assert.match(readFileSync(path.join(destinations[2]!, "references", "commands.md"), "utf8"), /bitable records update/)
     const file = path.join(destinations[0]!, "SKILL.md")
     writeFileSync(file, "local-customization")
     assert.throws(() => installSkills(target), /already exists/)

@@ -13,9 +13,10 @@ src/cli → src/domain → src/client → 昆仑开放平台
 | --- | --- |
 | src/cli | 路由、参数、帮助和 stdout 信封 |
 | src/domain/docs | 搜索、读取、块转换及写入工作流 |
+| src/domain/sheets、src/domain/bitable | 电子表格及 Base 适配器；复用 table-common 的分页和写入结果不明处理 |
 | src/client | 同源 HTTP、超时、上游错误翻译 |
 | src/auth、src/config | 身份授权、scope、刷新及本机配置 |
-| skills | 随程序分发的两个 Agent Skill 源码；安装到 Agent 的实际发现目录 |
+| skills | 随程序分发的文档、表格及共享鉴权 Agent Skill 源码；安装到 Agent 的实际发现目录 |
 | scripts | 构建、包白名单、交付物、Windows 安装及离线验收 |
 | docs | 开发、路线、接口依据和验收；archive 保留早期探活分析 |
 | dist、release | 编译 JS / 交付目录，均为忽略的生成物 |

@@ -133,7 +133,7 @@ try {
   assert.equal(ok(["config", "show"]).secret_source, "missing")
   const scopes = ok(["auth", "scopes"])
   assert.equal(scopes.version, manifest.version)
-  assert.deepEqual(scopes.default_scopes, ["docx:document", "drive:drive.metadata:readonly", "drive:drive:readonly", "space:document:retrieve"])
+  assert.deepEqual(scopes.default_scopes, ["docx:document", "drive:drive.metadata:readonly", "drive:drive:readonly", "space:document:retrieve", "sheets:spreadsheet", "bitable:app"])
   assert.deepEqual(scopes.allowed_scopes, scopes.default_scopes)
   // 无配置也应先拒绝非法授权参数，不能进入浏览器等待或返回缺凭证错误。
   for (const args of [["--scope", "im:message"], ["--scope="], ["--scpoe", "docx:document"]]) {
@@ -172,6 +172,13 @@ try {
   ok(["skills", "install", "--dir", skills])
   assert.match(readFileSync(path.join(skills, "kunlun-doc", "SKILL.md"), "utf8"), /docs edit/)
   assert.match(readFileSync(path.join(skills, "kunlun-doc", "SKILL.md"), "utf8"), /docs search/)
+  assert.match(readFileSync(path.join(skills, "kunlun-tables", "SKILL.md"), "utf8"), /bitable/)
+  const cellInput = path.join(work, "单元格.json")
+  const recordInput = path.join(work, "记录.json")
+  writeFileSync(cellInput, '{"values":[["Task",1]]}', "utf8")
+  writeFileSync(recordInput, '{"fields":{"Task":"Plan"}}', "utf8")
+  assert.equal(ok(["sheets", "write", "--spreadsheet", "sht_test", "--range", "sheet1!A1:B1", "--file", cellInput, "--dry-run"]).dry_run, true)
+  assert.equal(ok(["bitable", "records", "create", "--app", "base_test", "--table", "tbl_test", "--file", recordInput, "--dry-run"]).dry_run, true)
   const repeated = invoke(["skills", "install", "--dir", skills])
   assert.notEqual(repeated.status, 0)
   steps.push("安装 Agent Skill 并保护已有技能")

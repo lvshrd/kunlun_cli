@@ -55,6 +55,9 @@ test("版本与帮助的短选项、长选项和子命令等价", async () => {
   assert.match(docsHelp.stdout, /docs read/)
   assert.doesNotMatch(docsHelp.stdout, /^\s+auth login\s+/m)
   assert.deepEqual(await capture(() => run(["help", "docs", "read"])), await capture(() => run(["docs", "read", "-h"])))
+  const tableHelp = await capture(() => run(["bitable", "records", "update", "--help"]))
+  assert.match(tableHelp.stdout, /--record <ID>/)
+  assert.match(tableHelp.stdout, /--file <input.json>/)
 })
 
 test("短选项规范化后拒绝重复，未知帮助目标和额外版本参数不误报成功", async () => {

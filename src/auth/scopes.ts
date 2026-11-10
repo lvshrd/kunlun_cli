@@ -1,11 +1,14 @@
 import { CliError } from "../errors.ts"
 
-// 随 CLI release 维护；新增项必须先在“小惠”后台生效并完成用户授权验证。
+// Release-managed allowlist. Table scopes match Kunlun's documented APIs;
+// the maintainer confirmed enabling them in the application console on 2026-11-10.
 export const supportedUserScopes: readonly string[] = Object.freeze([
   "docx:document",
   "drive:drive.metadata:readonly",
   "drive:drive:readonly",
   "space:document:retrieve",
+  "sheets:spreadsheet",
+  "bitable:app",
 ])
 
 export function resolveUserScopes(raw?: string): string[] {

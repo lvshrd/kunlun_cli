@@ -1,6 +1,6 @@
 # kunlun-cli
 
-让本机 AI Agent 用自然语言搜索、创建、读取、追加和修改本人的昆仑智联文档。需要 Node.js 22.18+、npm，以及能访问昆仑平台的办公网络。
+让本机 AI Agent 用自然语言搜索、创建、读取、追加和修改本人的昆仑智联文档，以及读取和编辑电子表格、多维表格。需要 Node.js 22.18+、npm，以及能访问昆仑平台的办公网络。
 
 待发布版本 **0.2.0**，命令入口改为 `kunlun-cli`；已发布的 0.1.0 仍使用 `kunlun`。下方新入口适用于 0.2.0 发布并升级后；发布前可用源码生成的 tgz 或 `npm run install:local` 试用。
 
@@ -57,7 +57,7 @@ kunlun-cli auth login
 
 `auth login` 在本机浏览器请求当前版本固定权限，由本人确认账号并授权。`--scope` 只能选择本版本支持的非空子集；新增权限由维护者验证后随版本交付，升级后重新授权。
 
-Skill 安装目录须是实际 Agent 的发现目录，`.cursor/skills` 是 Cursor 示例；源码统一保存在仓库根目录 `skills/`。两个技能须同级安装，安装后重开 Agent 对话。程序升级不会自动覆盖已复制的 Skill；备份自定义内容后，用 `skills install --dir <目录> --force` 同步。
+Skill 安装目录须是实际 Agent 的发现目录，`.cursor/skills` 是 Cursor 示例；源码统一保存在仓库根目录 `skills/`。kunlun-shared、kunlun-doc、kunlun-tables 三个技能须同级安装，安装后重开 Agent 对话。程序升级不会自动覆盖已复制的 Skill；备份自定义内容后，用 `skills install --dir <目录> --force` 同步。
 
 ## 使用
 
@@ -81,6 +81,21 @@ kunlun-cli docs create --title "巡检规程" --file ./草稿.md --dry-run
 创建、追加、修改的完整参数见 `kunlun-cli docs --help` 和 [Skill 命令参考](skills/kunlun-doc/references/kunlun-doc-commands.md)。创建和追加去掉 `--dry-run` 才会写入；编辑预览会读取云端，执行时携带预览返回的 revision。
 
 ## 当前边界
+
+表格入口为 `sheets` 和 `bitable`。文档中内嵌表格先用 `docs read` 查看 resources，再使用其中的资源 token / 工作表或数据表 ID。示例：
+
+```sh
+kunlun-cli sheets sheets --spreadsheet <sheets链接或token>
+kunlun-cli sheets read --spreadsheet <token> --range 'sheet1!A1:C20'
+kunlun-cli sheets write --spreadsheet <token> --range 'sheet1!A1:C1' --file cells.json --dry-run
+kunlun-cli bitable tables --app <base链接或token> --all
+kunlun-cli bitable records list --app <token> --table <table_id> --all
+kunlun-cli bitable records update --app <token> --table <table_id> --record <record_id> --file record.json --dry-run
+```
+
+cells.json 为 `{"values":[["Task",1,"Plan"]]}`；record.json 为 `{"fields":{"Task":"Plan"}}`。去掉 --dry-run 执行写入并读回核对。还支持表格 append、Base 记录新增/查询和字段新增/修改，完整格式见[表格 Skill 参考](skills/kunlun-tables/references/commands.md)，接口及限制见[表格 API 依据](docs/TABLE_API.md)。
+
+本版新增 sheets:spreadsheet、bitable:app 两项固定权限，后台开通后需重新 `auth login`。已完成六项权限本人授权和嵌入电子表格真实读取；表格写入及 Base 云端业务仍待专用测试资源验收。写入没有原子并发保护；Base 字段属性目前只核对名称与类型。跨表自动同步、原生 DocX 表格布局编辑和画板内容操作尚未实现。
 
 - 搜索仅支持本人身份，按完整标题读取须唯一匹配且明确为 docx。同名、候选未取全、旧版或未知资源类型不自动读取；真实平台搜索仍待验收。
 - 写入支持普通段落和一至三级标题；修改要求在单个文本 run 内唯一匹配。删除、移动、重命名、原生编号、正文评论和复杂格式编辑尚未实现。

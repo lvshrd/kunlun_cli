@@ -61,6 +61,8 @@ export function formatHelp(routes: Route[]): string {
     "  kunlun-cli docs read --document <document_id>",
     '  kunlun-cli docs search --query "Procedure"',
     '  kunlun-cli docs read --name "Exact document title"',
+    "  kunlun-cli sheets read --spreadsheet <token> --range <sheet-id!A1:C20>",
+    "  kunlun-cli bitable tables --app <token> --all",
     "",
     "Flags:",
     "  -h, --help       Show help",
@@ -69,8 +71,9 @@ export function formatHelp(routes: Route[]): string {
     "Notes:",
     "  Use help [command] for command help, or version to show the version.",
     "  Pass long content through a UTF-8 file with --file.",
-    "  Document writes modify cloud data unless --dry-run is set.",
+    "  Document and table writes modify cloud data unless --dry-run is set.",
     "  Configuration and sessions are stored in ~/.kunlun-cli by default.",
+    "  Business commands use --as user by default; --as bot selects application identity explicitly.",
     "",
   ]
   return lines.join("\n")

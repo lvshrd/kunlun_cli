@@ -1,6 +1,6 @@
 ---
 name: kunlun-shared
-description: "通过本机 kunlun-cli CLI 操作昆仑智联私有化环境时使用：处理本人登录、应用配置、权限和 JSON 结果。云文档任务同时使用 kunlun-doc；不用于飞书公有云。"
+description: "通过本机 kunlun-cli CLI 操作昆仑智联私有化环境时使用：处理本人登录、应用配置、权限和 JSON 结果。文档使用 kunlun-doc，表格使用 kunlun-tables；不用于飞书公有云。"
 ---
 
 # 昆仑智联 CLI
