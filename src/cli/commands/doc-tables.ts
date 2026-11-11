@@ -18,14 +18,14 @@ function required(i: Invocation, key: string) {
   if (!value) throw new CliError("usage", `Missing --${key}`)
   return value
 }
-function input(i: Invocation, optional = false): unknown {
+function input(i: Invocation, optional = false): Record<string, unknown> | undefined {
   const present = inputFlags.some(key => i.flags[key] !== undefined && i.flags[key] !== false)
   if (!present && optional) return undefined
   const raw = readBody({ ...i.flags, content: i.flags.json })
   let parsed: unknown
   try { parsed = JSON.parse(raw.replace(/^\uFEFF/, "")) } catch { throw new CliError("usage", "Provide valid JSON with --file, --json or --stdin") }
-  if (!isRecord(parsed) || Object.keys(parsed).length !== 1 || !Object.hasOwn(parsed, "values")) throw new CliError("usage", "Table input must contain only a values matrix")
-  return parsed.values
+  if (!isRecord(parsed)) throw new CliError("usage", "Table input must be a JSON object")
+  return parsed
 }
 function validate(i: Invocation, allowed: string[]) {
   if (i.rest.length) throw new CliError("usage", "docs tables commands do not accept positional arguments")
@@ -50,13 +50,15 @@ async function execute(i: Invocation, dryRun: boolean, fn: (api: OpenApi, token:
 
 export function docTableRoutes(): Route[] {
   return [
-    { path: ["docs", "tables", "create"], summary: "Create and embed a table; --document <ID-or-docx-URL> --type <native|sheet|bitable> [--title <heading>] [--rows 2 --columns 2] [--file <native-values.json>] [--client-token <UUIDv4>] [--dry-run]", run: async i => {
+    { path: ["docs", "tables", "create"], summary: "Create and optionally initialize a table from JSON; --document <ID-or-docx-URL> --type <native|sheet|bitable> [--title <heading>] [--file <values-or-base.json>] [--rows 2 --columns 2] [--client-token <UUIDv4>] [--dry-run]", run: async i => {
       validate(i, ["type", "title", "rows", "columns", "client-token", "dry-run", ...inputFlags])
       const document = resourceToken(required(i, "document"), "docx")
+      const type = required(i, "type") as TableKind, payload = input(i, true)
+      if (payload && (type === "bitable" ? Object.keys(payload).some(k => !["fields", "records"].includes(k)) : Object.keys(payload).length !== 1 || !Object.hasOwn(payload, "values"))) throw new CliError("usage", "Use fields/records JSON for Base, or a values matrix for native/sheet")
       const options = {
-        type: required(i, "type") as TableKind, title: strFlag(i.flags, "title"),
+        type, title: strFlag(i.flags, "title"),
         rows: i.flags.rows === undefined ? undefined : Number(required(i, "rows")), columns: i.flags.columns === undefined ? undefined : Number(required(i, "columns")),
-        values: input(i, true), clientToken: strFlag(i.flags, "client-token"), dryRun: boolFlag(i.flags, "dry-run"),
+        values: type === "bitable" ? undefined : payload?.values, base: type === "bitable" ? payload : undefined, clientToken: strFlag(i.flags, "client-token"), dryRun: boolFlag(i.flags, "dry-run"),
       }
       planTable(options)
       await execute(i, options.dryRun, (api, token) => createTable(api, token, document, options))
@@ -68,7 +70,9 @@ export function docTableRoutes(): Route[] {
     } },
     { path: ["docs", "tables", "write"], summary: "Replace plain native cell text; --document <ID-or-docx-URL> --table <block-id> (--file <values.json> | --json <JSON> | --stdin) [--revision <N>] [--dry-run]", run: async i => {
       validate(i, ["table", "revision", "dry-run", ...inputFlags])
-      const document = resourceToken(required(i, "document"), "docx"), table = identifier(required(i, "table"), "table block ID"), values = nativeWriteValues(input(i))
+      const payload = input(i)
+      if (!payload || Object.keys(payload).length !== 1 || !Object.hasOwn(payload, "values")) throw new CliError("usage", "Native write input must contain only values")
+      const document = resourceToken(required(i, "document"), "docx"), table = identifier(required(i, "table"), "table block ID"), values = nativeWriteValues(payload.values)
       const revision = i.flags.revision === undefined ? undefined : Number(required(i, "revision"))
       if (revision !== undefined && (!Number.isSafeInteger(revision) || revision < 0)) throw new CliError("usage", "--revision must be a nonnegative integer")
       const dryRun = boolFlag(i.flags, "dry-run")

@@ -44,7 +44,7 @@ $trialRoot = Join-Path $env:TEMP ('kunlun-trial-' + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $trialRoot | Out-Null
 $env:KUNLUN_CONFIG_DIR = Join-Path $trialRoot 'config'
 $env:npm_config_cache = Join-Path $trialRoot 'npm-cache'
-npm install --global --prefix $trialRoot ./release/lvshrd-kunlun-cli-0.2.2.tgz --offline --ignore-scripts --no-audit --no-fund
+npm install --global --prefix $trialRoot ./release/lvshrd-kunlun-cli-0.2.3.tgz --offline --ignore-scripts --no-audit --no-fund
 & (Join-Path $trialRoot 'kunlun-cli.cmd') config show
 ```
 

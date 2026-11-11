@@ -33,6 +33,8 @@ test("table CLI validates before loading credentials and previews are completely
       ["docs", "tables", "create", "--document", "doc1", "--type", "native", "--json", '{"values":[["Task",1]]}', "--dry-run"],
       ["docs", "tables", "create", "--document", "doc1", "--type", "sheet", "--rows", "3", "--columns", "4", "--dry-run"],
       ["docs", "tables", "create", "--document", "doc1", "--type", "bitable", "--dry-run"],
+      ["docs", "tables", "create", "--document", "doc1", "--type", "bitable", "--json", '{"fields":[{"field_name":"Task","type":1}],"records":[{"fields":{"Task":"A"}}]}', "--dry-run"],
+      ["docs", "tables", "create", "--document", "doc1", "--type", "sheet", "--json", '{"values":[["Task",1]]}', "--dry-run"],
       ["docs", "tables", "write", "--document", "doc1", "--table", "table1", "--json", '{"values":[["New"]]}', "--dry-run"],
     ]) {
       const result = await capture(args)

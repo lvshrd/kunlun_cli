@@ -29,7 +29,7 @@ function native(values: string[][]) {
 
 test("creation plans and native matrices validate completely offline", async () => {
   assert.deepEqual(nativeValues([["A", 1, true, null]]), [["A", "1", "true", ""]])
-  for (const input of [{ type: "unknown" }, { type: "bitable", rows: 2 }, { type: "sheet", values: [[1]] }, { type: "native", rows: 0 }, { type: "native", rows: 1, values: [[1], [2]] }, { type: "native", clientToken: "bad" }]) assert.throws(() => planTable(input as Parameters<typeof planTable>[0]))
+  for (const input of [{ type: "unknown" }, { type: "bitable", rows: 2 }, { type: "sheet", values: [[true]] }, { type: "native", rows: 0 }, { type: "native", rows: 1, values: [[1], [2]] }, { type: "native", clientToken: "bad" }]) assert.throws(() => planTable(input as Parameters<typeof planTable>[0]))
   for (const matrix of [[], [[1], [1, 2]], [[{}]], [["a".repeat(10001)]], [[Infinity]]]) assert.throws(() => nativeValues(matrix))
   assert.throws(() => nativeWriteValues(Array.from({ length: 6 }, () => Array(9).fill(""))), /50 cells/)
   const { api, calls } = mock([])
@@ -78,6 +78,23 @@ test("Base creation returns the actual new table and its default field IDs", asy
   assert.equal(result.table_id, "tbl1")
   assert.equal(result.creation_verified, true)
   assert.deepEqual(calls[2]?.body, { index: -1, children: [{ block_type: 18, bitable: { view_type: 1 } }] })
+})
+
+test("Base JSON failure retains the created document/block/app/table and does not recreate it", async () => {
+  const block = { block_id: "baseblock", block_type: 18, bitable: { token: "base1_tbl1" } }
+  const schema = { data: { items: [{ field_id: "fld1", field_name: "Text", is_primary: true, type: 1 }], has_more: false } }
+  const { api, calls } = mock([...pages([root]), { data: { children: [block] } }, ...pages([{ ...root, children: ["baseblock"] }, block]), { data: { app: {} } }, schema, schema, { data: { items: [{ record_id: "existing", fields: { Text: "Business" } }], has_more: false } }])
+  await assert.rejects(() => createTable(api, "token", "doc1", { type: "bitable", base: { fields: [{ field_name: "Task", type: 1 }], records: [{ fields: { Task: "A" } }] } }), (e: unknown) => {
+    assert.ok(e instanceof CliError)
+    assert.equal(e.type, "partial_write")
+    const data = e.data as Record<string, unknown>
+    assert.equal(data.document_id, "doc1")
+    assert.equal(data.block_id, "baseblock")
+    assert.equal(data.app_token, "base1")
+    assert.equal(data.table_id, "tbl1")
+    return true
+  })
+  assert.equal(calls.filter(c => c.path.endsWith("/children") && c.method === "POST").length, 1)
 })
 
 test("failed creation and failed verification retain the document, block and idempotency key without retry", async () => {

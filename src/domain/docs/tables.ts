@@ -3,12 +3,13 @@ import type { OpenApi } from "../../client/http.ts"
 import { CliError } from "../../errors.ts"
 import { isRecord, str } from "../../json.ts"
 import { dataOf, identifier, objectOf, resourceToken, writeFailure } from "../table-common.ts"
-import { readRange } from "../sheets/service.ts"
+import { readRange, validateValues, writeRange } from "../sheets/service.ts"
+import { initializeNewBase, validateBaseInput } from "../bitable/initialize.ts"
 import { baseInfo, listFields, validateClientToken } from "../bitable/service.ts"
 import { readDocument } from "./service.ts"
 
 export type TableKind = "native" | "sheet" | "bitable"
-export interface CreateTableInput { type: TableKind; rows?: number; columns?: number; values?: unknown; title?: string; clientToken?: string; dryRun?: boolean }
+export interface CreateTableInput { type: TableKind; rows?: number; columns?: number; values?: unknown; base?: unknown; title?: string; clientToken?: string; dryRun?: boolean }
 
 export function nativeValues(value: unknown): string[][] {
   if (!Array.isArray(value) || !value.length || value.length > 9 || !Array.isArray(value[0]) || !value[0].length || value[0].length > 9) throw new CliError("usage", "Native table values must be a nonempty rectangular matrix, at most 9 rows by 9 columns")
@@ -34,14 +35,14 @@ export function planTable(input: CreateTableInput) {
   if (input.clientToken !== undefined) validateClientToken(input.clientToken)
   if (input.type === "bitable") {
     if (input.rows !== undefined || input.columns !== undefined || input.values !== undefined) throw new CliError("usage", "Base creation does not accept rows, columns or values; use bitable fields/records commands after creation")
-    return { type: input.type, rows: undefined, columns: undefined, values: undefined, title: input.title }
+    return { type: input.type, rows: undefined, columns: undefined, values: undefined, base: input.base === undefined ? undefined : validateBaseInput(input.base), title: input.title }
   }
-  if (input.type !== "native" && input.values !== undefined) throw new CliError("usage", "Initial values are only accepted for native tables; fill a new sheet with sheets write using the returned IDs")
-  const values = input.values === undefined ? undefined : nativeValues(input.values)
+  if (input.base !== undefined) throw new CliError("usage", "fields/records JSON is only supported for Base creation")
+  const values = input.values === undefined ? undefined : input.type === "native" ? nativeValues(input.values) : validateValues(input.values)
   const rows = input.rows ?? values?.length ?? 2, columns = input.columns ?? values?.[0]?.length ?? 2
   if (![rows, columns].every(n => Number.isSafeInteger(n) && n >= 1 && n <= 9)) throw new CliError("usage", "New embedded tables support 1 to 9 initial rows and columns")
   if (values && (values.length !== rows || values[0]!.length !== columns)) throw new CliError("usage", "Initial values must match --rows and --columns")
-  return { type: input.type, rows, columns, values: input.type === "native" ? values ?? Array.from({ length: rows }, () => Array<string>(columns).fill("")) : undefined, title: input.title }
+  return { type: input.type, rows, columns, values: values ?? (input.type === "native" ? Array.from({ length: rows }, () => Array<string>(columns).fill("")) : undefined), base: undefined, title: input.title }
 }
 
 const text = (content: string) => ({ elements: [{ text_run: { content } }] })
@@ -49,12 +50,12 @@ const text = (content: string) => ({ elements: [{ text_run: { content } }] })
 export async function createTable(api: OpenApi, token: string, document: string, input: CreateTableInput) {
   const id = resourceToken(document, "docx"), plan = planTable(input), clientToken = input.clientToken ?? randomUUID()
   const target = { document_id: id, type: plan.type, client_token: clientToken }
-  if (input.dryRun) return { ...target, dry_run: true, ...plan, required_scope: "docx:document", permission_check: "pending", next: plan.type === "sheet" ? "Use sheets write with the returned spreadsheet_token and sheet_id" : plan.type === "bitable" ? "Use bitable fields/records with the returned app_token and table_id" : "Plain text values will be created in native DocX cells" }
+  if (input.dryRun) return { ...target, dry_run: true, ...plan, required_scope: "docx:document", required_scopes: ["docx:document", ...(plan.base ? ["bitable:app"] : plan.type === "sheet" && plan.values ? ["sheets:spreadsheet"] : [])], permission_check: "pending", next: plan.base || (plan.type === "sheet" && plan.values) ? "The JSON content will be initialized and verified inside this command" : plan.type === "sheet" ? "Use sheets write with the returned spreadsheet_token and sheet_id" : plan.type === "bitable" ? "Use bitable fields/records with the returned app_token and table_id" : "Plain text values will be created in native DocX cells" }
   const before = await readDocument(api, token, id)
   const root = `/open-apis/docx/v1/documents/${encodeURIComponent(id)}/blocks/${encodeURIComponent(id)}`
   let body: Record<string, unknown>
   if (plan.type === "native") {
-    const cells = plan.values!.flatMap((row, r) => row.map((value, c) => ({ value, cell: `cell_${r}_${c}`, paragraph: `text_${r}_${c}` })))
+    const cells = plan.values!.flatMap((row, r) => row.map((value, c) => ({ value: String(value), cell: `cell_${r}_${c}`, paragraph: `text_${r}_${c}` })))
     const descendants: Record<string, unknown>[] = [
       ...(plan.title ? [{ block_id: "heading", block_type: 4, heading2: text(plan.title), children: [] }] : []),
       { block_id: "table", block_type: 31, table: { property: { row_size: plan.rows, column_size: plan.columns } }, children: cells.map(c => c.cell) },
@@ -88,13 +89,24 @@ export async function createTable(api: OpenApi, token: string, document: string,
     if (plan.type === "sheet") {
       if (!resource.spreadsheet_token || !resource.sheet_id) throw new CliError("api", "The created sheet is missing its spreadsheet token or sheet ID")
       await readRange(api, token, resource.spreadsheet_token, `${resource.sheet_id}!A1:A1`)
+      if (plan.values) {
+        const initialized = await writeRange(api, token, resource.spreadsheet_token, `${resource.sheet_id}!A1:${String.fromCharCode(64 + plan.columns!)}${plan.rows}`, plan.values, "write")
+        return { ...target, ...resource, dry_run: false, creation_verified: true, content_initialized: true, verified: true, initialization: initialized }
+      }
       return { ...target, ...resource, dry_run: false, creation_verified: true, content_initialized: false, verification_scope: "embedded_resource_and_metadata", next: "Use sheets write --spreadsheet <spreadsheet_token> --range <sheet_id>!A1:B2 --file values.json" }
     }
     if (!resource.app_token || !resource.table_id) throw new CliError("api", "The created Base is missing its app token or table ID")
     const info = await baseInfo(api, token, resource.app_token)
     const fields = await listFields(api, token, resource.app_token, resource.table_id, { all: true })
+    if (plan.base) {
+      const initialized = await initializeNewBase(api, token, resource.app_token, resource.table_id, plan.base)
+      return { ...target, ...resource, dry_run: false, creation_verified: true, content_initialized: true, verified: true, initialization: initialized }
+    }
     return { ...target, ...resource, dry_run: false, creation_verified: true, content_initialized: false, verification_scope: "embedded_resource_and_metadata", app: info, fields: fields.items, next: "Use bitable fields/records --app <app_token> --table <table_id> to initialize content" }
-  } catch (err) { return writeFailure(err, { ...target, block_id: blockId, result }, "verify") }
+  } catch (err) {
+    if (err instanceof CliError && err.type === "partial_write") throw new CliError(err.type, err.message, err.hint, { ...target, block_id: blockId, ...(isRecord(err.data) ? err.data : {}) })
+    return writeFailure(err, { ...target, block_id: blockId, result }, "verify")
+  }
 }
 
 async function nativeSnapshot(api: OpenApi, token: string, document: string, tableId: string) {

@@ -18,6 +18,8 @@
 
 ## 文档内创建与嵌入
 
+0.2.3新增JSON初始化编排，不是新增平台API：native/sheet输入values，Base输入fields与records。Base只面向本次新建数据表，先完整读取默认字段/记录，拒绝已有业务数据，复用确认空白的记录、不足才新增；每条写入读回核对，最后完整查询记录并返回残余空白数。不自动删除空行或默认字段。当前初始化限定文字/数字字段（首列文字主字段），20字段/100记录；既有资源仍用记录ID进行明确更新，不隐式覆盖整表。部分失败为partial_write，保留资源ID、阶段、进度和原错误，不自动重建。
+
 0.2.2起，正式入口为 `docs tables create --document <ID> --type native|sheet|bitable`，均追加到文档末尾；可用--title同时创建二级标题。创建与操作已有资源是不同能力：0.2.1的CRUD验收使用原始API创建测试区，没有正式创建命令；本次补齐后，Agent可按[三类表格流程](../skills/kunlun-tables/references/create-with-tables.md)完成整个请求。
 
 - native使用[创建嵌套块](https://open.fklzl.cnpc.com.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block-descendant/create)：POST /open-apis/docx/v1/documents/:document_id/blocks/:document_id/descendant，children_id只包含顶层表格/标题，descendants包含Table、TableCell和每格Text。一次请求完成结构与内容创建，之后读回矩阵核对。
