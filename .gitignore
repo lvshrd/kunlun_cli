@@ -5,3 +5,4 @@ release/
 *.tgz
 .kunlun-sandbox/
 TODO.md
+.private/

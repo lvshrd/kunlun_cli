@@ -18,7 +18,7 @@
 | 读取原生普通表格 | `kunlun-cli docs tables read --document <ID> --table <block_id>` |
 | 修改原生表格文字 | `kunlun-cli docs tables write --document <ID> --table <block_id> --file <values.json> [--revision <N>] [--dry-run]` |
 
-创建和追加的预览只处理本地正文，不能证明权限可用。修改预览会读取云端定位文本，但不写入；修改执行用文档版本限制并发冲突。
+创建和追加的预览只处理本地正文，不能证明权限可用。修改预览会读取云端定位文本，但不写入；执行时带回预览 revision 可检查版本变化，不把预览本身当作锁定文档。
 
 编辑要求在单个纯文本 run 的普通段落或一至三级标题内唯一匹配，不能跨 run，不支持空替换或批量替换。无法完整读取时拒绝编辑。修改后读回核对；网络错误不盲目重试。
 

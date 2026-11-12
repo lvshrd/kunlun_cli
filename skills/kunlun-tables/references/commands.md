@@ -1,6 +1,6 @@
 # 表格命令
 
-以下 ID 均为占位符。默认 user，显式 `--as bot` 使用应用身份及其资源权限。写入输入三选一：`--json '<JSON>'`、`--file <UTF-8.json>`、`--stdin`。PowerShell 推荐文件输入，避免引号转义。
+以下 ID 均为占位符。默认 user；仅在任务明确需要应用身份时显式 `--as bot`，不得用于绕过本人权限。JSON 输入三选一：`--json '<JSON>'`、`--file <UTF-8.json>`、`--stdin`。PowerShell 推荐文件输入，避免引号转义。
 
 创建新表格或“建云文档并放入三类表格”使用 `docs tables create --document <ID> --type native|sheet|bitable`，原生表格使用 docs tables read/write；完整参数、初始化及恢复见[创建含三类表格的文档](create-with-tables.md)。下文sheets/bitable命令接续操作已有或刚创建的实际资源。
 
@@ -21,7 +21,7 @@ cells.json 示例：
 {"values":[["Task",3,{"type":"formula","text":"=B1*2"}]]}
 ```
 
-去掉 --dry-run 才实际执行。write 矩阵必须与范围尺寸相同；append 的列数相同、行数不超过范围，使用 INSERT_ROWS，按返回的实际插入范围读回。clear 只清空内容，不删除行列。范围最多 5000 行、100 列；单字符串最多 50000 字符。支持字符串、有限数字、null、公式对象；null 清空在本环境已实测，布尔值会被平台拒绝，CLI 提前拦截。公式使用官方对象格式，非字符串推断；跨表引用和富样式、人员提及、单元格图片未封装。read 使用 Formula 呈现，公式返回表达式，保留其它单元格原始 JSON。
+去掉 --dry-run 才实际执行；该预览只验证本地输入，目标类型、权限和资源检查仍为 pending。write 矩阵必须与范围尺寸相同；append 的列数相同、行数不超过范围，使用 INSERT_ROWS，按返回的实际插入范围读回。clear 只清空内容，不删除行列。范围最多 5000 行、100 列；单字符串最多 50000 字符。支持字符串、有限数字、null、公式对象；null 用于清空，布尔值会被平台拒绝，CLI 提前拦截。公式使用上述对象格式，不把普通字符串自动推断为公式；跨表引用和富样式、人员提及、单元格图片未封装。read 使用 Formula 呈现，公式返回表达式，保留其它单元格原始 JSON；complete=true 仅针对 requested_range，不代表整个工作簿已读完。
 
 ## 多维表格
 

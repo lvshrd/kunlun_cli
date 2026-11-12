@@ -10,7 +10,7 @@ description: "用户要用自然语言在本人昆仑智联云空间搜索、创
 ## 从需求到动作
 
 - 创建：把用户提供的资料整理成 UTF-8 Markdown 草稿，再用 `docs create --title ... --file ... --dry-run` 预览，随后按授权创建，读回核对并返回 ID / 可用链接。
-- 创建含表格的文档（0.2.2起）：docs create完成正文后，用 `docs tables create --document <ID> --type native|sheet|bitable` 创建并嵌入普通表格、电子表格、多维表格。读取[三类表格创建流程](../kunlun-tables/references/create-with-tables.md)并核对实际版本；native可直接带values，Sheet/Base须再填充。不要把“Markdown正文只支持标题段落”误解成不能创建含表格文档。
+- 创建含表格的文档：先创建一次正文，再按 [kunlun-tables](../kunlun-tables/SKILL.md) 在返回的 document_id 中创建并嵌入表格。0.2.3 起三类均可用 JSON 一次初始化：native/sheet 用 values，bitable 用 fields 和 records；不要求先创建空资源再逐项填充。详见[三类表格创建流程](../kunlun-tables/references/create-with-tables.md)。Markdown 表格不会自动转换为云端表格。
 - 搜索定位：用户只给名称或关键词时，先用 `docs search --query <关键词>` 查候选，依据标题、类型及所有者定位；不要一开始就要求用户提供 ID。有多份可能目标时向用户消歧，不自动选择第一条。结果未取全时缩小关键词，翻页同时使用返回的 next_offset / next_limit；窗口耗尽不声称已经搜完。
 - 按完整标题读取：可用 `docs read --name <完整标题>`；仅在候选页已取全、完整标题唯一匹配且类型明确为 docx 时自动读正文。遇到 ambiguous / incomplete / not_found 时查看返回候选，再缩小范围或消歧；unsupported 表示当前不能读取该候选类型。
 
@@ -25,7 +25,7 @@ description: "用户要用自然语言在本人昆仑智联云空间搜索、创
 
 默认用户身份。明确的创建、追加、修改请求就是对应范围的操作授权；用户要求“先给我看”时，给出预览后等用户确认再写入。避免重复要求已给出的同一授权。
 
-搜索和按名称读取只支持 user。权限不足时保留诊断，不自动换 bot 或扩 scope；当前版本已有 drive:drive:readonly，官方文档将其列为搜索可用权限之一，不能据此假定所有环境都已完成后台开通及本人授权。搜索异常不说成没有文档，零结果只表示本次查询未找到可见候选。
+搜索和按名称读取只支持 user。权限不足时保留诊断，不自动换 bot 或扩 scope；本地 auth scopes 清单不能证明后台和本人已授权。搜索异常不说成没有文档，零结果只表示本次查询未找到可见候选。
 
 失败返回 document_id 时保留该 ID，先读回确认已有内容再恢复。完成后说明实际修改、读回核对结果和仍存在的限制，不将单元测试当作云端实测。
 

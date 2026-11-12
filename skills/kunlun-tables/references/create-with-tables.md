@@ -1,8 +1,10 @@
 # 创建包含三类表格的云文档
 
-本流程要求kunlun-cli **0.2.2及以上**。0.2.1提供已有表格CRUD，不包含本页创建/嵌入命令；先检查实际版本，旧版本按用户授权更新后再执行。
+本页默认使用 kunlun-cli **0.2.3 及以上**的一次初始化能力。先检查实际版本；0.2.2 支持创建/嵌入但 Sheet/Base 需分步填充，见下方兼容说明；0.2.1 仅支持已有表格操作。
 
-**0.2.3起优先使用一次JSON初始化**：native/sheet输入values，bitable输入fields和records。CLI内部完成必要查询、字段配置、空白记录复用、写入和核对；Agent不必手工先调用records list。0.2.2仍使用下文分步流程。
+先用 docs create 创建一次文档，以下各步都使用返回的 document_id。**优先用 JSON 一次初始化**：native/sheet 输入 values，bitable 输入 fields 和 records。CLI 内部完成必要查询、字段配置、空白记录复用、写入和核对；Agent 不必手工先调用 records list。已有表格的修改使用各自的读写命令，不重新创建资源。
+
+## 创建并初始化多维表格
 
 ```sh
 kunlun-cli docs tables create --document <document_id> --type bitable --file base.json --dry-run
@@ -17,7 +19,7 @@ base.json：
 
 当前初始化支持1～20个字段（文字type=1、数字type=2），首列须文字主字段；最多100条记录。字段名必须唯一，记录只用声明的字段，未赋值字段省略而非传null。它只初始化本次新建的Base，不是对既有表格的整表覆盖；已有记录仍用record_id明确更新。
 
-CLI完整查询初始记录，仅复用确认全部字段为空且写前仍为空的记录，不足才新增；0和false不算空。发现已有业务数据时停止，避免同一client-token重复执行造成重复新增。保留平台多余空行与未使用默认字段，不自动删除，返回records_reused、records_created、remaining_blank_records。remaining_blank_records不为0时须向用户说明。部分失败返回partial_write、资源ID、stage、progress及原错误，不自动重建或重试。
+CLI 完整查询初始记录，仅复用确认全部字段为空且写前仍为空的记录，不足才新增；0 和 false 不算空。发现已有业务数据时停止，避免重复执行造成重复新增。保留平台多余空行与未使用默认字段，不自动删除。成功返回的 initialization 中有 records_reused、records_created、remaining_blank_records；残留空行不为 0 时向用户说明。部分失败返回 partial_write，顶层 data 保留资源 ID、stage、progress 及原错误，不自动重建或重试。
 
 适用请求示例：“创建一个云文档，包含普通表格、数字表格、 多维表格，内容随便。”这里普通表格为原生 DocX Table，数字/电子表格为 Sheets，多维表格为 Base。三类都可用正式命令创建并嵌入，不需要用原始 api 命令搭建。
 
@@ -47,11 +49,11 @@ kunlun-cli docs tables write --document <document_id> --table <block_id> --file 
 
 write 替换整张表的普通单元格文字，矩阵须与表尺寸一致；最多50格，每格至多一个text run，保留其样式。写空字符串可清空文字，保留表格结构。read 最多81格，要求未合并、每格一个纯文本段落；遇复杂内容会拒绝，不丢弃后重建。--revision 检查写前读取的版本；平台未提供严格原子保护，仍需检查写后结果。
 
-## 创建电子表格并填充
+## 创建并初始化电子表格
 
 ```sh
-kunlun-cli docs tables create --document <document_id> --type sheet --title "电子表格" --rows 3 --columns 3
-kunlun-cli sheets write --spreadsheet <返回的spreadsheet_token> --range '<返回的sheet_id>!A1:C3' --file sheet.json
+kunlun-cli docs tables create --document <document_id> --type sheet --title "电子表格" --file sheet.json --dry-run
+kunlun-cli docs tables create --document <document_id> --type sheet --title "电子表格" --file sheet.json
 ```
 
 sheet.json：
@@ -60,7 +62,14 @@ sheet.json：
 {"values":[["项目","数量","金额"],["设备A",2,1200],["设备B",3,{"type":"formula","text":"=B3*500"}]]}
 ```
 
-0.2.3可直接 `docs tables create --document <ID> --type sheet --file sheet.json`，自动按values推导初始尺寸并写入核对，返回content_initialized=true。初始行列1～9；若显式指定尺寸必须与values一致。不带JSON则仍创建空工作表、返回content_initialized=false，使用后续sheets命令填充；不要用DocX block_id代替sheet_id。
+自动按 values 推导初始尺寸并写入核对，返回 content_initialized=true。初始行列 1～9；若显式指定尺寸必须与 values 一致。不带 JSON 则创建空工作表、返回 content_initialized=false，可用后续 sheets 命令填充；不要用 DocX block_id 代替 sheet_id。
+
+0.2.2 或有意分步创建时，先创建空资源，再使用返回的实际资源 ID：
+
+```sh
+kunlun-cli docs tables create --document <document_id> --type sheet --title "电子表格" --rows 3 --columns 3
+kunlun-cli sheets write --spreadsheet <返回的spreadsheet_token> --range '<返回的sheet_id>!A1:C3' --file sheet.json
+```
 
 ## 手工分步创建多维表格（0.2.2兼容流程）
 
@@ -71,7 +80,7 @@ kunlun-cli bitable records list --app <返回的app_token> --table <返回的tab
 
 创建返回 fields，其中包含实际字段名、field_id、type、is_primary；根据用户要求使用现有字段或用 bitable fields create/update 设置字段后再填记录。不要猜默认字段名，也不要给 bitable 创建传 --rows / --columns / values。
 
-例如默认首列名称是 Multiline，用户未指定字段结构时，record.json 可用返回的实际名字：
+例如仅当返回首列名称为 Multiline 时，record.json 可用这个实际名字；不要把示例名当作平台保证：
 
 ```json
 {"fields":{"Multiline":"示例任务"}}
@@ -91,4 +100,4 @@ kunlun-cli bitable records list --app <返回的app_token> --table <返回的tab
 
 最后 docs read 检查 resources 中的 docx_table、sheets、bitable，再分别使用 docs tables read、sheets read 和 bitable records read/search 核对内容。docs read 的 content_complete=false 仍可能表示表格容器未自动展开，不能把它当成创建失败或整篇文档已读完。
 
-create 支持 --client-token <UUIDv4>（默认生成），dry-run 离线返回计划；执行成功返回 creation_verified。创建或初始化中断时保留 document_id、block_id、client_token 和已成功的资源ID，先读取实际状态；不自动重建文档、重复创建表格或删除已完成内容。各类表格创建不是一个跨资源事务。
+docs tables create 支持 --client-token <UUIDv4>（默认生成），dry-run 离线返回计划，权限和资源仍待执行时检查。执行成功看 creation_verified；初始化内容还看 content_initialized / verified，Base 计数看 initialization。创建或初始化中断时保留 document_id、block_id、client_token 和已成功的资源 ID，先读取实际状态；不自动重建文档、重复创建表格或删除已完成内容。client-token 不保证整个创建和初始化流程幂等，各类表格创建也不是一个跨资源事务。

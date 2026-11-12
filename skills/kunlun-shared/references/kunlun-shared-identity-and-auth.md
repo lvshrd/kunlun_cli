@@ -20,7 +20,7 @@ kunlun-cli auth login
 kunlun-cli auth status
 ```
 
-默认登录使用版本固定的六项业务权限，准确清单以 `auth scopes` 为准；该命令不读取凭证或查询后台。2026-11-10 已在原四项基础上增加 sheets:spreadsheet、bitable:app，完成本人重新授权；业务 API 的可用性仍按各自验收记录判断。
+默认登录使用版本固定权限，准确清单以 `auth scopes` 为准；该命令不读取凭证或查询后台。0.2.3 清单包括 docx:document、drive:drive.metadata:readonly、drive:drive:readonly、space:document:retrieve、sheets:spreadsheet、bitable:app。权限在清单中不等于应用后台已开通、当前账号已授权或业务接口已验收。
 
 旧 `--scope "docx:document"` 用法仍可用，但只能选择版本清单内的非空子集。多个值用空格分隔；空值、未知项、通配符、重复参数和拼错参数直接报错，不进入授权等待。不要自动编辑源码或本地安装包来绕过限制；新增权限由维护者验证后发布新版。
 
@@ -28,8 +28,8 @@ kunlun-cli auth status
 
 `99991679`：根据 CLI 提示判断是否属于本版本支持范围；支持项可在确认后台生效后重新登录，仍失败则停止重试并联系维护者，不照抄上游 scope。`20027`：维护者检查用户身份权限是否已开通生效；账号不能使用应用时检查可用范围。`doctor` 只提供连通性及登录概况，不是文档写入验收。
 
-当前回调等待上限仍为 180 秒；授权页面报错且未回调时 CLI 无法立即感知。向用户展示错误并停止自动重试；可配置超时与更细的登录诊断在下一步实现。
+当前回调等待上限为 180 秒；授权页面报错且未回调时 CLI 无法立即感知。授权失败时保留诊断，解决原因后再重试，不连续重复发起登录。
 
 `--no-browser` 只跳过自动打开浏览器，回调仍必须到运行 CLI 的电脑。复制完整 URL，不能在 & 处截断。
 
-仅换工作目录不会切换配置。独立试用需同时隔离程序 prefix 和 KUNLUN_CONFIG_DIR；Agent 也必须继承对应环境。
+仅换工作目录不会切换配置。隔离账号或应用使用 KUNLUN_CONFIG_DIR；并行试用不同程序版本时另隔离 npm prefix。Agent 必须继承所选环境和 PATH。Secret 和 token 当前保存在本机文件中，隐藏输入不代表落盘加密；排障使用脱敏命令，不打印凭证文件。

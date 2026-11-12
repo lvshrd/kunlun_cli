@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1098" height="288" viewBox="0 0 1098 288" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">kunlun-cli — geometric wordmark</title>
+  <desc id="desc">Custom lowercase lettering. A branching k, matching geometric u and n bowls, short-footed l forms, and a chamfered command-line hyphen. Ice white and cyan, on a midnight blue background. All letters are vector outlines.</desc>
+  <rect width="1098" height="288" rx="36" fill="#0B1528"/>
+  <g id="wordmark" transform="translate(64 64)">
+    <g id="kunlun" fill="#F4F8FF">
+      <path id="letter-k" d="M8 0H24V96L76 40H108L57 96L112 160H80L36 110H24V160H0V8L8 0Z"/>
+      <path id="letter-u-1" transform="translate(132)" d="M0 40H24V122C24 132 28 136 38 136H58C68 136 72 132 72 122V40H96V124C96 147 83 160 60 160H36C13 160 0 147 0 124V40Z"/>
+      <path id="letter-n-1" transform="translate(248)" d="M0 160V76C0 53 13 40 36 40H60C83 40 96 53 96 76V160H72V78C72 68 68 64 58 64H38C28 64 24 68 24 78V160H0Z"/>
+      <path id="letter-l-1" transform="translate(368)" d="M8 0H24V122C24 132 28 136 38 136H48V160H36C13 160 0 147 0 124V8L8 0Z"/>
+      <path id="letter-u-2" transform="translate(438)" d="M0 40H24V122C24 132 28 136 38 136H58C68 136 72 132 72 122V40H96V124C96 147 83 160 60 160H36C13 160 0 147 0 124V40Z"/>
+      <path id="letter-n-2" transform="translate(554)" d="M0 160V76C0 53 13 40 36 40H60C83 40 96 53 96 76V160H72V78C72 68 68 64 58 64H38C28 64 24 68 24 78V160H0Z"/>
+    </g>
+    <g id="cli" fill="#39D9F2">
+      <path id="hyphen" transform="translate(680)" d="M8 88H56L48 112H0L8 88Z"/>
+      <path id="letter-c" transform="translate(766)" d="M88 40L80 64H38C28 64 24 68 24 78V122C24 132 28 136 38 136H80L88 160H36C13 160 0 147 0 124V76C0 53 13 40 36 40H88Z"/>
+      <path id="letter-l-2" transform="translate(876)" d="M8 0H24V122C24 132 28 136 38 136H48V160H36C13 160 0 147 0 124V8L8 0Z"/>
+      <path id="letter-i" transform="translate(946)" d="M8 0H24V24H0V8L8 0ZM0 40H24V160H0V40Z"/>
+    </g>
+  </g>
+</svg>
