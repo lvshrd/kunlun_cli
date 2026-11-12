@@ -201,9 +201,9 @@ npm run package
 
 受限环境若无法写入默认 npm 缓存，可先将 `npm_config_cache` 指向可写的本地目录，例如 PowerShell：`$env:npm_config_cache = Join-Path (Get-Location) '.private/npm-cache'`。
 
-`package` 通过暂存目录白名单打包：只有 `package.json`、README、编译后 JS 与 Markdown Skill，去掉交付包内开发依赖和 scripts。源码、测试、架构、开发指南、内部记录和凭证不进入 tgz。产物包括 `lvshrd-kunlun-cli-<版本>.tgz`、`.sha256`、`release.json`、Windows 安装器和使用说明；`dist/`、`release/` 均为忽略的生成物。
+`package` 通过暂存目录白名单打包：只有 `package.json`、README、LICENSE、编译后 JS 与 Markdown Skill，去掉交付包内开发依赖和 scripts。源码、测试、架构、开发指南、内部记录和凭证不进入 tgz。产物包括 `lvshrd-kunlun-cli-<版本>.tgz`、`.sha256`、`release.json`、Windows 安装器和使用说明；`dist/`、`release/` 均为忽略的生成物。
 
-README 图片使用 GitHub raw 绝对链接，以便 npm 页面引用；`asset/` 不随 tgz 分发。发布前先将引用的素材推送至对应仓库路径，再核对浅色/深色 logo 与流程图，避免安装说明页面出现失效图片。
+README 图片使用公开仓库的 GitHub raw 绝对链接，以便 GitHub 和 npm 页面引用；`asset/` 不随 tgz 分发。发布前先将引用的素材推送至对应仓库路径，并在未登录的环境检查浅色/深色 logo 与流程图可访问，避免私有资源或失效地址导致图片不可见。
 
 ### 隔离安装产物并实测
 
@@ -242,7 +242,7 @@ npm install --global --prefix <旧prefix> @lvshrd/kunlun-cli@latest
 
 ## 6. 发布到 npm
 
-公共包名为 `@lvshrd/kunlun-cli`，命令名为 `kunlun-cli`；`publishConfig` 指定公共 registry 与 public 访问。仓库尚未指定开源许可证，发布不自动附加某个开源许可。
+公共包名为 `@lvshrd/kunlun-cli`，命令名为 `kunlun-cli`；`publishConfig` 指定公共 registry 与 public 访问。项目采用 [MIT 许可证](../LICENSE)，版权署名为 `lvshrd`；安装包保留许可声明和完整 LICENSE。
 
 1. `npm login --registry=https://registry.npmjs.org/`，再用 `npm whoami --registry=https://registry.npmjs.org/` 确认身份；不要在对话或仓库保存 npm token。
 2. 同步递增 `package.json`、lockfile、`src/version.ts` 与 README 中的版本信息，用 `npm view @lvshrd/kunlun-cli versions --json` 确认目标版本未被发布。

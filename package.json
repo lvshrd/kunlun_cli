@@ -7,6 +7,7 @@
   },
   "type": "module",
   "description": "让 AI 通过昆仑智联开放平台替你处理文档等办公操作",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lvshrd/kunlun_cli.git"

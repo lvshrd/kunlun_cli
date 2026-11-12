@@ -1,7 +1,6 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/lvshrd/kunlun_cli/main/asset/kunlun-logo-transparent.svg" alt="kunlun-cli 图形标志" width="112">
-</p>
+
 <h1 align="center">
+  <img src="https://raw.githubusercontent.com/lvshrd/kunlun_cli/main/asset/kunlun-logo-transparent.svg" alt="kunlun-cli 图形标志" width="112">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/lvshrd/kunlun_cli/main/asset/kunlun-wordmark-dark.svg">
     <img src="https://raw.githubusercontent.com/lvshrd/kunlun_cli/main/asset/kunlun-wordmark.svg" alt="kunlun-cli" width="420">
@@ -10,9 +9,7 @@
 
 <p align="center">让本机 AI Agent 在你的身份和权限下，处理昆仑智联云文档与表格。</p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@lvshrd/kunlun-cli">npm 安装包</a> ·
-  <a href="https://github.com/lvshrd/kunlun_cli/blob/main/docs/DEVELOPMENT.md">开发指南</a> ·
-  <a href="https://github.com/lvshrd/kunlun_cli/blob/main/docs/ARCHITECTURE.md">代码架构</a>
+  <a href="https://www.npmjs.com/package/@lvshrd/kunlun-cli"><img src="https://img.shields.io/npm/dm/%40lvshrd%2Fkunlun-cli?logo=npm&amp;label=downloads%2Fmonth" alt="npm 月下载量"></a>
 </p>
 
 用自然语言描述任务，Agent 通过 Skill 选择命令，kunlun-cli 负责授权、调用开放平台并返回可核对的结果。适用于能调用本机终端的 Agent；云端操作需要能访问昆仑平台的办公网络。
@@ -84,3 +81,7 @@ kunlun-cli auth login
 默认配置与登录态保存在 `~/.kunlun-cli`，可用 `KUNLUN_CONFIG_DIR` 隔离应用。Secret 和 token 当前保存在本地文件中，不要提交配置目录或把凭证发到对话。未配置网页根地址时，操作结果可能只返回 ID。
 
 用 `config show`、`auth status` 查看脱敏状态，`doctor` 联网诊断，`auth logout` 退出。报障请提供版本、发生时间和脱敏错误。CLI 帮助、提示和错误消息使用英文，文档内容保留原语言。
+
+## 许可证
+
+本项目采用 [MIT 许可证](https://github.com/lvshrd/kunlun_cli/blob/main/LICENSE)，版权署名为 lvshrd。
