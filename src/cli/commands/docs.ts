@@ -8,7 +8,7 @@ import { contentToBlocks } from "../../domain/docs/blocks.ts"
 import { appendDocument, createDocument, documentIdFromInput, readDocument } from "../../domain/docs/service.ts"
 import { editDocument } from "../../domain/docs/edit.ts"
 import { documentTemplate } from "../../domain/docs/template.ts"
-import { resolveDocumentByName, searchDocuments, validateSearchInput } from "../../domain/docs/search.ts"
+import { documentUrl, resolveDocumentByName, searchDocuments, searchItemUrl, validateSearchInput } from "../../domain/docs/search.ts"
 import { requireApp } from "../../runtime.ts"
 import { boolFlag, strFlag } from "../args.ts"
 import { readBody } from "../content.ts"
@@ -20,7 +20,7 @@ export function docsRoutes(): Route[] {
     { path: ["docs", "template"], summary: "Create a local UTF-8 procedure template without network access or overwriting files", run: template },
     { path: ["docs", "create"], summary: "Create a cloud document from Markdown headings and paragraphs", run: create },
     { path: ["docs", "append"], summary: "Append content to an existing cloud document", run: append },
-    { path: ["docs", "search"], summary: "Search documents visible to the current user; --query [--limit 20] [--offset 0]", run: search },
+    { path: ["docs", "search"], summary: "Search visible resources; --query <text> [--type doc,sheet,bitable,file,slides,mindnote] [--exact] [--limit 20] [--offset 0]. Default: all types. Exact filters this page only; total/cursors remain unfiltered. User only.", run: search },
     { path: ["docs", "read"], summary: "Read a document with completeness diagnostics; --document <ID-or-URL> or --name <exact-title>; --raw includes raw blocks", run: read },
     { path: ["docs", "edit"], summary: "Replace a unique text match; --find --replace --dry-run [--revision]", run: edit },
   ]
@@ -129,12 +129,14 @@ async function read(invocation: Invocation): Promise<void> {
 }
 
 async function search(invocation: Invocation): Promise<void> {
-  validateFlags(invocation, ["query", "limit", "offset", "as"])
+  validateFlags(invocation, ["query", "limit", "offset", "as", "type"], ["exact"])
   if (invocation.rest.length > 0) throw new CliError("usage", "docs search does not accept positional arguments")
   const input = validateSearchInput({
     query: strFlag(invocation.flags, "query") ?? "",
     limit: invocation.flags.limit === undefined ? undefined : Number(strFlag(invocation.flags, "limit") ?? NaN),
     offset: invocation.flags.offset === undefined ? undefined : Number(strFlag(invocation.flags, "offset") ?? NaN),
+    types: invocation.flags.type === undefined ? undefined : String(invocation.flags.type).split(",").map(type => type.trim()),
+    exact: boolFlag(invocation.flags, "exact"),
   })
   const identity = identityOf(invocation)
   requireUserSearch(identity)
@@ -142,8 +144,9 @@ async function search(invocation: Invocation): Promise<void> {
   const result = await searchDocuments(app.client, await tokenFor(app, identity), input)
   printOk({ identity, ...result, items: result.items.map(item => ({
     ...item,
-    ...(item.document_id ? { url: documentUrl(app.config.webBaseUrl, item.document_id) } : {}),
-  })) })
+    url: searchItemUrl(app.config.webBaseUrl, item),
+  })), warnings: !app.config.webBaseUrl && result.items.some(item => item.type === "docx")
+    ? ["Docx URLs are unavailable: web_base_url is not configured. Use the returned document IDs."] : [] })
 }
 
 function requireUserSearch(identity: "user" | "bot"): void {
@@ -164,9 +167,4 @@ function validateFlags(invocation: Invocation, allowed: string[], switches: stri
 async function tokenFor(app: ReturnType<typeof requireApp>, identity: "user" | "bot"): Promise<string> {
   if (identity === "bot") return getBotToken(app.dir, app.client, app.config.appId, app.secret)
   return getUserToken(app.dir, app.client, app.config, app.secret)
-}
-
-function documentUrl(webBaseUrl: string, documentId: string): string | undefined {
-  if (!webBaseUrl) return undefined
-  return `${webBaseUrl}/docx/${documentId}`
 }

@@ -18,8 +18,9 @@ test("真实命令路由搜索候选并输出 ID、类型及已配置的昆仑�
     assert.equal(result.payload.data.items[0].document_id, "dox_1")
     assert.equal(result.payload.data.items[0].url, "https://docs.example.com/docx/dox_1")
     assert.equal(result.payload.data.items[1].document_id, undefined)
+    assert.equal(result.payload.data.items[1].url, undefined)
     assert.equal(result.requests.length, 1)
-    assert.deepEqual(JSON.parse(String(result.requests[0]?.init?.body)), { search_key: "操作规程", count: 20, offset: 0, docs_types: ["doc"] })
+    assert.deepEqual(JSON.parse(String(result.requests[0]?.init?.body)), { search_key: "操作规程", count: 20, offset: 0, docs_types: ["doc", "sheet", "bitable", "file", "slides", "mindnote"] })
   })
 })
 
@@ -31,6 +32,8 @@ test("按完整名称读取先搜索再用找到的 ID 读取，保留原有 ID 
     assert.equal(named.code, 0)
     assert.equal(named.payload.data.markdown, "规程正文")
     assert.equal(named.payload.data.located_by, "name")
+    assert.deepEqual(JSON.parse(String(named.requests[0]?.init?.body)), { search_key: "操作规程", count: 50, offset: 0, docs_types: ["doc"] })
+    assert.equal(named.payload.data.url, "https://docs.example.com/docx/dox_1")
     assert.equal(named.requests[1]?.url.pathname, "/open-apis/docx/v1/documents/dox_1")
     assert.equal(named.requests[2]?.url.pathname, "/open-apis/docx/v1/documents/dox_1/blocks")
     assert.equal(named.requests[2]?.url.searchParams.get("document_revision_id"), "9")
@@ -77,6 +80,8 @@ test("候选不唯一、未取全或旧版 doc 时输出候选且不读取正文
       const result = await invoke(["docs", "read", "--name", "操作规程"], [response])
       assert.equal(result.code, 1)
       assert.equal(result.payload.error.type, expected)
+      assert.deepEqual(JSON.parse(String(result.requests[0]?.init?.body)).docs_types, ["doc"])
+      assert.match(result.payload.error.hint, /--type doc/)
       assert.ok(Array.isArray(result.payload.data.items))
       assert.equal(result.requests.length, 1)
     }
@@ -92,6 +97,10 @@ test("搜索参数错误、互斥目标和 bot 身份在网络前拒绝", async 
       ["read", "--name", "规程", "--as", "bot"], ["read", "--name", "规程", "--document", "dox_1"],
       ["read", "--name", "规程", "--dry-run"], ["read", "--nmae", "规程"],
       ["search", "--query", "规程", "--raw"], ["read", "--name", "规程", "--raw=invalid"],
+      ["search", "--query", "规程", "--type", "docx"],
+      ["search", "--query", "规程", "--type="],
+      ["search", "--query", "规程", "--type", "sheet,"],
+      ["search", "--query", "规程", "--exact=invalid"],
     ]) {
       const result = await invoke(["docs", ...args], [])
       assert.equal(result.code, 1, args.join(" "))
@@ -120,7 +129,44 @@ interface InvocationResult {
   requests: Array<{ url: URL; init?: RequestInit }>
 }
 
-async function withApp(body: (invoke: (args: string[], responses: unknown[]) => Promise<InvocationResult>) => Promise<void>): Promise<void> {
+test("类型与 exact 参数通过命令路由传递，表格和文件输出 ID 而非未验证的链接", async () => {
+  await withApp(async invoke => {
+    const result = await invoke(["docs", "search", "--query", "项目", "--type", "bitable, sheet,file", "--exact"],
+      [searchResponse([item("bas_1", "项目", "bitable"), item("sht_1", "项目", "sheet"), item("fil_1", "项目", "file"), item("other", "项目副本", "bitable")], true)])
+    assert.equal(result.code, 0)
+    assert.deepEqual(JSON.parse(String(result.requests[0]?.init?.body)).docs_types, ["bitable", "sheet", "file"])
+    const data = result.payload.data
+    assert.deepEqual(data.items.map((item: any) => item.url), [undefined, undefined, undefined])
+    assert.deepEqual(data.warnings, [])
+    assert.equal(data.items[0].app_token, "bas_1")
+    assert.equal(data.items[1].spreadsheet_token, "sht_1")
+    assert.equal(data.items[2].file_token, "fil_1")
+    assert.equal(data.scanned_count, 4)
+    assert.equal(data.returned_count, 3)
+    assert.equal(data.next_offset, 4)
+    const unfiltered = await invoke(["docs", "search", "--query", "项目", "--exact=false"], [searchResponse([item("other", "项目副本", "bitable")])])
+    assert.equal(unfiltered.payload.data.items.length, 1)
+  })
+})
+
+test("缺少网页配置仅在返回 DocX 候选时提示，空结果及其他类型不提示", async () => {
+  await withApp(async invoke => {
+    for (const items of [[], [item("b", "项目", "bitable"), item("s", "项目", "sheet"), item("d", "项目", "doc"), item("f", "项目", "file"), item("u", "项目", "future")]]) {
+      const result = await invoke(["docs", "search", "--query", "项目"], [searchResponse(items)])
+      assert.equal(result.code, 0)
+      assert.deepEqual(result.payload.data.warnings, [])
+      assert.ok(result.payload.data.items.every((item: any) => item.url === undefined))
+    }
+    const noUrl = await invoke(["docs", "search", "--query", "操作规程"], [searchResponse([item()])])
+    assert.equal(noUrl.payload.data.items[0].url, undefined)
+    assert.equal(noUrl.payload.data.warnings.length, 1)
+    assert.match(noUrl.payload.data.warnings[0], /web_base_url/)
+    const filtered = await invoke(["docs", "search", "--query", "项目", "--exact"], [searchResponse([item()])])
+    assert.deepEqual(filtered.payload.data.warnings, [])
+  }, "")
+})
+
+async function withApp(body: (invoke: (args: string[], responses: unknown[]) => Promise<InvocationResult>) => Promise<void>, webBaseUrl = "https://docs.example.com/"): Promise<void> {
   const dir = mkdtempSync(path.join(tmpdir(), "kunlun-search-test-"))
   const originalEnv = { ...process.env }
   const originalFetch = globalThis.fetch
@@ -128,7 +174,7 @@ async function withApp(body: (invoke: (args: string[], responses: unknown[]) => 
   try {
     for (const key of Object.keys(process.env)) if (key.toUpperCase().startsWith("KUNLUN_")) delete process.env[key]
     process.env.KUNLUN_CONFIG_DIR = dir
-    saveConfig(dir, { ...defaultConfig, appId: "cli_test", openBaseUrl: "https://open.example.com", webBaseUrl: "https://docs.example.com" })
+    saveConfig(dir, { ...defaultConfig, appId: "cli_test", openBaseUrl: "https://open.example.com", webBaseUrl })
     saveSecret(dir, "test-secret")
     saveUserSession(dir, { accessToken: "test-user-token", refreshToken: "", expiresAt: Date.now() + 3_600_000, refreshExpiresAt: 0, openId: "ou_test", name: "test", scope: "drive:drive:readonly" })
     await body(async (args, responses) => {

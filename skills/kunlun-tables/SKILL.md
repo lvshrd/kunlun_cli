@@ -9,6 +9,7 @@ description: "通过本机 kunlun-cli 创建、读取和编辑昆仑智联表格
 
 ## 选择入口
 
+- 只有表格名称时先用 `docs search --query <名称> --type bitable --exact`；电子表格用 `--type sheet`，类型不明确用 `--type bitable,sheet`。检查 has_more / next_offset / next_limit，精确筛选后的空页不表示搜索结束。同名候选需消歧；搜索到的 app_token / spreadsheet_token 可直接交给后续表格命令，无需先让用户手贴链接。完整搜索参数见[文档命令参考](../kunlun-doc/references/kunlun-doc-commands.md)。
 - 新建带表格文档：先用 docs create 创建一次正文，再用 docs tables create 选择 native/sheet/bitable；读取[创建流程](references/create-with-tables.md)并核对实际版本。0.2.3 起三类都可带 JSON 一次初始化：native/sheet 用 values，Base 用 fields 和 records。CLI 处理字段和默认空白记录，Agent 无需手工先 records list。
 - 已有 `/sheets/` 资源用 sheets 命令，`/base/` 资源用 bitable 命令。DocX 先 docs read 查看 resources：sheets 提供 spreadsheet_token / sheet_id，bitable 提供 app_token / table_id，docx_table 使用 docs tables read/write --table <block_id>。文档块 ID 与表格资源 ID 不互换。
 - 原生 DocX 表格只支持简单未合并单元格文字；board 仅识别引用。不要从界面名称猜接口，也不把 wiki token 直接传给文档或表格命令。

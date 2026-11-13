@@ -16,6 +16,7 @@ kunlun-cli 的普通业务命令及 `version` / `--version` 向 **stdout** 写�
 - `identity`: `"user"` | `"bot"`（docs、api 等）
 - `dry_run`: `true`（仅预览，未调用写接口）
 - `document_id`、`markdown`、`url`（docs 相关）
+- `docs search` 的 `warnings` 为字符串数组：仅当返回的 items 包含 docx 且未配置 web_base_url 时提示链接配置；空结果、仅其他类型候选或已配置时为 []。目前仅 docx 候选生成 url，其他类型仍返回 token/type 及已支持的资源 ID。warning 不表示搜索失败，也不改变分页完整性。
 - `docs read` 还需检查 `complete`；`pagination_complete` 与 `content_complete` 分别表示分页与已取回内容的文本转换完整性。`ok: true` 不等于复杂文档已完整呈现，diagnostics 列出省略位置。
 
 ## 失败（退出码非 0，默认 1）
