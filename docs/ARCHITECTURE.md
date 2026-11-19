@@ -16,7 +16,7 @@ src/cli → src/domain → src/client → 昆仑开放平台
 | `src/domain/sheets`、`src/domain/bitable` | Sheets 与 Base 适配；通过 `table-common` 复用分页和写入异常处理 |
 | `src/client` | 同源 HTTP、超时、上游错误翻译，向业务层提供 `OpenApi` 接口 |
 | `src/auth`、`src/config` | 应用配置、浏览器授权、token 存储与刷新、版本固定的 scope 集合 |
-| `skills` | 随包分发的三个 Agent Skill 源码；安装后作为 Agent 的本地副本使用 |
+| `skills` | 随包分发的 Agent Skill 源码，安装后作为 Agent 的本地副本使用 |
 | `scripts` | 编译、打包白名单、交付物生成及离线安装验收 |
 | `docs` | 公开架构与开发指南；`dist/`、`release/` 为忽略的构建产物 |
 

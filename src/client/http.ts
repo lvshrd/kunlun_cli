@@ -1,6 +1,6 @@
 import { CliError } from "../errors.ts"
 import { isRecord, num, str } from "../json.ts"
-import { supportedUserScopes } from "../auth/scopes.ts"
+import { defaultUserScopes } from "../auth/scopes.ts"
 import { version } from "../version.ts"
 
 export interface CallRequest {
@@ -83,7 +83,7 @@ function permissionHint(body: unknown): string | undefined {
       .filter((item) => isRecord(item) && item.type === "action_privilege_required")
       .map((item) => isRecord(item) ? str(item.subject) : undefined)
       .filter((scope): scope is string => Boolean(scope && /^[a-zA-Z0-9_:.-]+$/.test(scope))))]
-    if (scopes.some((scope) => supportedUserScopes.includes(scope))) {
+    if (scopes.some((scope) => defaultUserScopes.includes(scope))) {
       return "User authorization is insufficient; the API lists scopes supported by this release. Confirm that the application has the required user permissions, then run kunlun-cli auth login to authorize the fixed release scopes. If the request still fails, stop retrying and contact the maintainer. Do not add scopes from upstream errors; refreshing a token does not expand authorization."
     }
     return "The API did not identify a scope supported by this release. Run kunlun-cli auth scopes and contact the maintainer to verify the API and permissions. A new release may be required; do not guess scopes or repeatedly authorize."

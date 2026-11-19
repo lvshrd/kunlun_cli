@@ -56,6 +56,20 @@ search 还支持 view_id、automatic_fields；过滤器内部遵循昆仑平台�
 
 分页默认 100 条；数据表/字段 --page-size 最大 100，记录最大 500。--page-token 读取后续页；--all 从第一页读取，不能与 --page-token 混用。最多 50 页，游标缺失、重复或中断返回 incomplete 并保留部分 items。complete 仅表示从第一页到末页的分页完成，不是事务快照。
 
+## 同步到 OKR 进展
+
+确认来源 Base 记录、字段和本人已有的目标或关键结果。默认登录请求 `bitable:app` 和 `okr:okr`。
+
+```sh
+kunlun-cli bitable records read --app APP_TOKEN --table TABLE_ID --record RECORD_ID
+```
+
+从 `data.fields` 取精确字段名对应的文本，按原顺序拼接纯文本片段并保存为 UTF-8 的 `progress.txt`。遇到提及、链接等复杂数据时先确定需要保留的部分。
+
+用 `okr list --all` 定位已发布的目标。首次同步用 `okr progress create`，把已确认的 Base 链接作为 `--source-url`。已有映射时，用 `okr progress update` 更新原 `progress_id`。正文都用 `--file progress.txt` 提供。具体参数、预览和异常恢复见 [kunlun-okr](../../kunlun-okr/SKILL.md)。
+
+核对 `data.verified` 后保留来源 `record_id` 与目标 `progress_id` 的对应关系。需要把映射写回 Base 时，以用户指定的记录和字段为准。
+
 ## 权限
 
 表格写入需要 sheets:spreadsheet，多维表格使用 bitable:app；两项均纳入本版 auth scopes。后台开通后仍需本人 `auth login`，单纯刷新旧 token 不扩权。既有 drive:drive:readonly 可用于普通表格读取。应用权限、本人授权、资源访问权限及 Base 高级权限分别生效；遇拒绝保留诊断，不临时追加未知 scope。

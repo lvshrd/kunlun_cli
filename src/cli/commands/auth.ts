@@ -2,7 +2,7 @@ import { CliError } from "../../errors.ts"
 import { printOk } from "../../output/envelope.ts"
 import { clearUserSession, loadUserSession, publicUser } from "../../auth/session.ts"
 import { loginUser } from "../../auth/user.ts"
-import { resolveUserScopes, supportedUserScopes } from "../../auth/scopes.ts"
+import { defaultUserScopes, resolveUserScopes } from "../../auth/scopes.ts"
 import { version } from "../../version.ts"
 import { requireApp } from "../../runtime.ts"
 import { boolFlag } from "../args.ts"
@@ -10,7 +10,7 @@ import type { Invocation, Route } from "../route.ts"
 
 export function authRoutes(): Route[] {
   return [
-    { path: ["auth", "login"], summary: "Log in with the fixed release scopes; --scope selects a subset; --no-browser skips opening the browser", run: login },
+    { path: ["auth", "login"], summary: "Log in with the default document, table, and OKR scopes. --scope selects a subset. --no-browser skips opening the browser", run: login },
     { path: ["auth", "scopes"], summary: "List supported user scopes without network access", run: scopes },
     { path: ["auth", "status"], summary: "Show the user session without exposing tokens", run: status },
     { path: ["auth", "logout"], summary: "Clear the local user session", run: logout },
@@ -42,7 +42,7 @@ async function logout(invocation: Invocation): Promise<void> {
 
 async function scopes(invocation: Invocation): Promise<void> {
   validateInvocation(invocation, "scopes")
-  printOk({ version, source: "release", default_scopes: supportedUserScopes, allowed_scopes: supportedUserScopes })
+  printOk({ version, source: "release", default_scopes: defaultUserScopes, allowed_scopes: defaultUserScopes })
 }
 
 function validateInvocation(invocation: Invocation, command: string, allowed: string[] = []): void {

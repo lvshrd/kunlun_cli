@@ -20,9 +20,9 @@ kunlun-cli auth login
 kunlun-cli auth status
 ```
 
-默认登录使用版本固定权限，准确清单以 `auth scopes` 为准；该命令不读取凭证或查询后台。0.2.3 清单包括 docx:document、drive:drive.metadata:readonly、drive:drive:readonly、space:document:retrieve、sheets:spreadsheet、bitable:app。权限在清单中不等于应用后台已开通、当前账号已授权或业务接口已验收。
+`auth login` 请求 `auth scopes` 的 `default_scopes`，其中 `bitable:app` 用于多维表格，`okr:okr` 用于本人 OKR 查询和进展读写。读取 Base 后写入 OKR 可使用同一次默认授权。
 
-旧 `--scope "docx:document"` 用法仍可用，但只能选择版本清单内的非空子集。多个值用空格分隔；空值、未知项、通配符、重复参数和拼错参数直接报错，不进入授权等待。不要自动编辑源码或本地安装包来绕过限制；新增权限由维护者验证后发布新版。
+`--scope` 选择 `allowed_scopes` 中的非空子集，多个值用空格分隔。空值、未知项、通配符、重复参数和拼错参数直接报错。新增权限由维护者验证后随版本提供。
 
 登录后确认本人及实际返回的 scope；不要将 `auth scopes` 清单当成用户已经授予的权限。后台开通新权限、升级 CLI、刷新旧 token 均不等于用户已同意，新增权限需要重新登录授权。
 

@@ -11,7 +11,8 @@ test("Agent Skill 支持预览，默认保留已有文件，显式更新才覆�
   try {
     const destinations = installSkills(target, false, true)
     assert.equal(existsSync(target), false)
-    installSkills(target)
+    assert.deepEqual(destinations.map(destination => path.basename(destination)), ["kunlun-shared", "kunlun-doc", "kunlun-tables", "kunlun-okr"])
+    assert.deepEqual(installSkills(target), destinations)
     assert.match(readFileSync(path.join(destinations[1]!, "SKILL.md"), "utf8"), /kunlun-doc/)
     assert.match(readFileSync(path.join(destinations[2]!, "references", "commands.md"), "utf8"), /bitable records update/)
     const file = path.join(destinations[0]!, "SKILL.md")

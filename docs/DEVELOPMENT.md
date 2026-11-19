@@ -51,7 +51,7 @@ npm run check
 node src/main.ts auth scopes
 ```
 
-当前固定权限为 `docx:document`、`drive:drive.metadata:readonly`、`drive:drive:readonly`、`space:document:retrieve`、`sheets:spreadsheet`、`bitable:app`，以 [scopes.ts](../src/auth/scopes.ts) 和命令输出为准。`auth login --scope "..."` 只能选择其中的非空子集，不接受临时猜测的新权限。
+`auth login` 请求 `default_scopes` 中的七项权限，其中 `okr:okr` 覆盖本人 OKR 查询和进展读写。需要缩小授权范围时，用 `auth login --scope "..."` 从 `allowed_scopes` 选取子集。[默认授权清单](../README.md#默认授权)
 
 应用后台权限、用户本人同意和目标资源访问权限分别生效。后台新增权限或刷新 token 不会扩大旧授权；支持的权限开通后重新 `auth login`。扩展到新权限需按后文开发流程验证并随版本交付。
 
@@ -115,7 +115,7 @@ node src/main.ts skills install --dir .codex/skills --dry-run
 node src/main.ts skills install --dir .codex/skills
 ```
 
-`.codex/skills` 仅作目录示例，请改为当前 Agent 实际发现技能的目录。三个 Skill 必须同级安装，随后新开 Agent 对话，并让 Agent 继承开发配置目录、使用源码入口或对应安装产物。开发时不要让 Agent 误用 PATH 中的旧版命令。
+`.codex/skills` 仅作目录示例，请改为当前 Agent 实际发现技能的目录。将配套 Skill 同级安装后新开 Agent 对话，并让 Agent 继承开发配置目录、使用源码入口或对应安装产物。开发时可用 `--version` 检查 PATH 中的 CLI 版本。
 
 `skills/` 是分发源码，安装目录是副本。修改后备份副本中的自定义内容，再用 `skills install --dir <目录> --force` 同步。CLI 升级不会自动更新副本。
 
@@ -133,13 +133,14 @@ node src/main.ts docs search --query "CLI 开发测试"
 
 创建、追加的预览离线运行，编辑预览读取云端；去掉 `--dry-run` 才提交写入。编辑执行时携带预览返回的 revision，冲突后重新预览。写入超时或结果不明时，保留资源 ID、`client_token` 和进度，先读回再恢复，避免重复创建或追加。
 
-完整参数、JSON 及恢复步骤统一维护在 Skill 参考中。下列参考使用已安装的 `kunlun-cli`；源码调试时替换为 `node src/main.ts`。
+完整参数、JSON 及恢复步骤维护在 Skill 中。下列参考使用已安装的 `kunlun-cli`。源码调试时替换为 `node src/main.ts`。
 
 | 验证范围 | 操作参考 | 验收要点 |
 | --- | --- | --- |
 | 文档搜索、读取、追加与修改 | [文档命令参考](../skills/kunlun-doc/references/kunlun-doc-commands.md) | 标题消歧、单一文本匹配、版本冲突与写后读回；搜索真实兼容性须在目标环境验收 |
 | 在同一文档创建普通表格、Sheets、Base | [三类表格创建与初始化](../skills/kunlun-tables/references/create-with-tables.md) | JSON 初始化、返回资源 ID、字段和内容读回、残留空白记录数量 |
 | 操作已有原生表格、Sheets、Base | [表格命令与 JSON 参考](../skills/kunlun-tables/references/commands.md) | 从 `resources` 定位正确类型，区域/记录/字段目标准确，写入、清空与删除后核对 |
+| 查询本人 OKR 并读写进展 | [OKR Skill](../skills/kunlun-okr/SKILL.md) | 从已发布的 Mock O 或 KR 定位目标，新增后按 ID 读回，更新并验证同文重复提交返回 `unchanged` |
 
 读取时检查 `complete`、`pagination_complete`、`content_complete`、`diagnostics` 和 `resources`；需要排查转换时加 `--raw`。复杂内容未展开不能当作不存在，分页失败的部分结果也不能当作全文。Sheets 和 Base 写后读回不提供事务或原子并发保护；当前类型与规模限制以对应参考为准。
 
@@ -224,6 +225,8 @@ npm.cmd install --global --prefix $trialRoot $trialPackage --offline --ignore-sc
 macOS / Linux 使用相同的 npm prefix 与独立 `KUNLUN_CONFIG_DIR`，入口位于 `<prefix>/bin/kunlun-cli`。真实 Agent 必须继承试用环境或使用对应绝对入口。试用目录可能含真实凭证，不提交、不分发；结束关闭终端，清理前确认目录用途。
 
 本人完成授权，在指定测试文档运行第 3 节流程，核对文本、追加次数、资源归属、完整性标记、表格读回与版本冲突。再由一位非维护者在独立电脑通过 Agent 验证。记录版本、目标部署、账号角色、操作、脱敏结果和未通过项；内部账号、资源 ID、原始响应和未公开计划放本地私有目录或有访问控制的私有仓库，公开文档只保留复现方法与已知边界。
+
+昆仑实测通过 `okr:okr` 完成本人 OKR 查询及进展新增、读取和更新。所测部署对飞书 v2 的 O/KR 创建和更新路由返回 HTTP 404。[飞书 CLI 创建接口](https://github.com/larksuite/cli/blob/main/skills/lark-okr/references/lark-okr-create.md) · [飞书 CLI 更新接口](https://raw.githubusercontent.com/larksuite/cli/main/shortcuts/okr/okr_patch.go)
 
 ### 离线交付与旧安装迁移
 

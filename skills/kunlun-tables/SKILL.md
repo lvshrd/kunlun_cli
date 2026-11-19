@@ -1,6 +1,6 @@
 ---
 name: kunlun-tables
-description: "通过本机 kunlun-cli 创建、读取和编辑昆仑智联表格：在云文档中创建并嵌入普通DocX表格、电子表格和多维表格，以及操作单元格、字段和记录；不用于飞书公有云或本地Excel文件。"
+description: "通过本机 kunlun-cli 创建、读取和编辑昆仑智联表格，包括 DocX 普通表格、电子表格和多维表格。也用于把指定多维表格记录的文本写入已有 OKR 的进展。"
 ---
 
 # 昆仑表格
@@ -13,6 +13,7 @@ description: "通过本机 kunlun-cli 创建、读取和编辑昆仑智联表格
 - 新建带表格文档：先用 docs create 创建一次正文，再用 docs tables create 选择 native/sheet/bitable；读取[创建流程](references/create-with-tables.md)并核对实际版本。0.2.3 起三类都可带 JSON 一次初始化：native/sheet 用 values，Base 用 fields 和 records。CLI 处理字段和默认空白记录，Agent 无需手工先 records list。
 - 已有 `/sheets/` 资源用 sheets 命令，`/base/` 资源用 bitable 命令。DocX 先 docs read 查看 resources：sheets 提供 spreadsheet_token / sheet_id，bitable 提供 app_token / table_id，docx_table 使用 docs tables read/write --table <block_id>。文档块 ID 与表格资源 ID 不互换。
 - 原生 DocX 表格只支持简单未合并单元格文字；board 仅识别引用。不要从界面名称猜接口，也不把 wiki token 直接传给文档或表格命令。
+- 将 Base 记录同步到本人已有 O/KR 时，读取指定字段，再根据已有映射选择新增或更新进展。[同步到 OKR 进展](references/commands.md#同步到-okr-进展)
 
 ## 读写已有表格
 
@@ -28,4 +29,4 @@ Base update 只发送需要更新的字段，复杂字段沿用平台 JSON 类�
 
 verification 表示写入已返回成功、核对未通过；write_unknown 表示执行结果可能不明；partial_write 表示新 Base 已存在但初始化未完成。均保留错误顶层 data 中的资源 ID、result、client_token 和 progress，先读回目标，不自动重试或回滚。新建 Base 记录的同一次请求如需恢复，保留同一个 UUIDv4 --client-token，但先核对实际结果，不生成新 key 重复创建。
 
-Sheets 不支持原生布尔值，CLI 会提前拒绝；Base 数字字段读回可能是字符串，CLI 根据字段 type=2 核对数值，原始值保留。复杂字段按实际场景核对。跨表同步尚无专用工作流；用户提出此类任务时先确定稳定源 ID、字段映射和冲突规则，不能把一组单次写入当作幂等同步能力。
+Sheets 不支持原生布尔值，CLI 会提前拒绝；Base 数字字段读回可能是字符串，CLI 根据字段 type=2 核对数值，原始值保留。复杂字段按实际场景核对。其他跨表任务先确定稳定源 ID、字段映射和冲突规则。

@@ -121,6 +121,8 @@ try {
   assert.match(help.stdout, /Usage:/)
   assert.doesNotMatch(help.stdout, /node src\/main\.ts/)
   assert.match(help.stdout, /docs search/)
+  assert.match(help.stdout, /okr progress create/)
+  assert.match(help.stdout, /okr progress update/)
   for (const args of [["-h"], ["help"]]) assert.equal(invoke(args).stdout, help.stdout)
   const docsHelp = invoke(["docs", "--help"])
   for (const args of [["docs", "-h"], ["help", "docs"]]) {
@@ -136,8 +138,9 @@ try {
   assert.equal(ok(["config", "show"]).secret_source, "missing")
   const scopes = ok(["auth", "scopes"])
   assert.equal(scopes.version, manifest.version)
-  assert.deepEqual(scopes.default_scopes, ["docx:document", "drive:drive.metadata:readonly", "drive:drive:readonly", "space:document:retrieve", "sheets:spreadsheet", "bitable:app"])
+  assert.deepEqual(scopes.default_scopes, ["docx:document", "drive:drive.metadata:readonly", "drive:drive:readonly", "space:document:retrieve", "sheets:spreadsheet", "bitable:app", "okr:okr"])
   assert.deepEqual(scopes.allowed_scopes, scopes.default_scopes)
+  assert.equal(ok(["okr", "progress", "update", "--progress", "7333333333333333333", "--content", "Mock progress", "--dry-run"]).dry_run, true)
   // 无配置也应先拒绝非法授权参数，不能进入浏览器等待或返回缺凭证错误。
   for (const args of [["--scope", "im:message"], ["--scope="], ["--scpoe", "docx:document"]]) {
     const refusedAuth = invoke(["auth", "login", ...args])
@@ -145,7 +148,7 @@ try {
     assert.equal(JSON.parse(refusedAuth.stdout).error.type, "usage")
     assert.equal(refusedAuth.stderr, "")
   }
-  steps.push("固定权限目录可离线查询，未知或空 scope 与拼错参数在授权前退出")
+  steps.push("默认权限包含 OKR 读写权限，未知或空 scope 与拼错参数在授权前退出")
   const needsTerminal = invoke(["config", "init"])
   assert.notEqual(needsTerminal.status, 0)
   assert.match(JSON.parse(needsTerminal.stdout).error.message, /requires a terminal/)
@@ -176,6 +179,7 @@ try {
   assert.match(readFileSync(path.join(skills, "kunlun-doc", "SKILL.md"), "utf8"), /docs edit/)
   assert.match(readFileSync(path.join(skills, "kunlun-doc", "SKILL.md"), "utf8"), /docs search/)
   assert.match(readFileSync(path.join(skills, "kunlun-tables", "SKILL.md"), "utf8"), /bitable/)
+  assert.match(readFileSync(path.join(skills, "kunlun-okr", "SKILL.md"), "utf8"), /okr progress create/)
   const cellInput = path.join(work, "单元格.json")
   const recordInput = path.join(work, "记录.json")
   writeFileSync(cellInput, '{"values":[["Task",1]]}', "utf8")

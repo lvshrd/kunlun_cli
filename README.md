@@ -16,7 +16,7 @@
 
 ## 当前能力
 
-下表对应当前源码（版本号 **0.2.3**，多类型资源发现为未发布改动）；本机安装版本可用 `kunlun-cli --version` 查看。
+下表对应源码版本 **0.2.4**。本机安装版本可用 `kunlun-cli --version` 查看。
 
 | 能力 | 可以做什么 |
 | --- | --- |
@@ -26,7 +26,8 @@
 | 普通文档表格 | 在文档内创建带内容的表格，按矩阵读取和修改简单单元格文字。 |
 | 电子表格 Sheets | 在文档内新建并嵌入电子表格，用 JSON 一次填入内容；查询工作表、读取指定区域、覆盖写入、插入追加和清空内容。 |
 | 多维表格 Base | 在文档内新建并嵌入 Base，用 JSON 初始化文字/数字字段和记录，复用默认空白记录；查询数据表，增删改查记录，新增、修改及删除非主字段。 |
-| 本机 Agent 集成 | 分发文档、表格及共享鉴权三个 Skill；本人浏览器授权、登录刷新、脱敏诊断，业务命令返回结构化 JSON。 |
+| OKR | 查询周期和本人 OKR，新增、读取和更新已发布目标或关键结果的文字进展。受限于昆仑智联接口，暂不支持直接创建新的OKR。[OKR Skill](skills/kunlun-okr/SKILL.md) |
+| 本机 Agent 集成 | 分发文档、表格、OKR 和共享鉴权 Skill，支持本人浏览器授权、登录刷新、脱敏诊断和结构化 JSON 结果。 |
 
 当前文档正文写入以普通文字为主，复杂排版、正文评论、文档移动/重命名/删除尚未实现。普通表格限未合并、每格一个普通段落；创建最多 9×9，读取最多 81 格，修改最多 50 格。Sheets 暂不支持原生布尔值；Base 的 JSON 初始化只用于本次新建的数据表。跨表自动同步、表格行列结构调整和画板内容操作尚未实现。
 
@@ -59,9 +60,23 @@ kunlun-cli skills install --dir .codex/skills
 kunlun-cli auth login
 ```
 
-`config init` 隐藏输入 Secret，请在本机终端输入；`auth login` 打开浏览器，由本人确认账号和授权。`.codex/skills` 是目录示例，需改为当前 Agent 实际发现技能的目录。三个 Skill 会一起安装，安装后开启新的 Agent 对话。
+`config init` 在本机终端隐藏输入 Secret。`auth login` 打开浏览器，由本人确认账号和授权。`.codex/skills` 是目录示例，需改为当前 Agent 实际发现技能的目录。配套 Skill 会同级安装，安装后开启新的 Agent 对话。
 
 更新程序会保留应用配置和登录态。备份自行修改的 Skill 后，用 `skills install --dir <实际目录> --force` 同步技能；版本新增权限时，需重新 `auth login`。
+
+### 默认授权
+
+`kunlun-cli auth login` 默认请求以下七项用户权限。可用 `kunlun-cli auth scopes` 查看当前版本的默认权限。
+
+```text
+docx:document
+drive:drive.metadata:readonly
+drive:drive:readonly
+space:document:retrieve
+sheets:spreadsheet
+bitable:app
+okr:okr
+```
 
 ## 使用
 

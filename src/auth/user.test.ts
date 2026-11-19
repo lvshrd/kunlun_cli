@@ -13,7 +13,7 @@ const config: Config = {
   webBaseUrl: "",
 }
 
-test("默认登录请求本版本固定的文档与表格业务权限", () => {
+test("默认登录请求文档、表格和 OKR 读写权限", () => {
   const url = new URL(buildAuthorizeUrl(config, "state-1"))
   assert.equal(url.origin, "https://accounts.example.com")
   assert.equal(url.pathname, "/open-apis/authen/v1/authorize")
@@ -22,7 +22,7 @@ test("默认登录请求本版本固定的文档与表格业务权限", () => {
   assert.equal(url.searchParams.get("response_type"), "code")
   assert.equal(url.searchParams.get("state"), "state-1")
   assert.equal(url.searchParams.get("app_id"), null)
-  assert.equal(url.searchParams.get("scope"), "docx:document drive:drive.metadata:readonly drive:drive:readonly space:document:retrieve sheets:spreadsheet bitable:app")
+  assert.equal(url.searchParams.get("scope"), "docx:document drive:drive.metadata:readonly drive:drive:readonly space:document:retrieve sheets:spreadsheet bitable:app okr:okr")
 })
 
 test("文档授权链接保留并编码业务权限，去重且规范空白", () => {
@@ -30,6 +30,11 @@ test("文档授权链接保留并编码业务权限，去重且规范空白", ()
   assert.equal(url.searchParams.get("scope"), "docx:document drive:drive:readonly")
   assert.equal(url.searchParams.get("redirect_uri"), config.redirectUrl)
   assert.equal(url.searchParams.get("state"), "state-1")
+})
+
+test("允许只请求 OKR 权限", () => {
+  const url = new URL(buildAuthorizeUrl(config, "state-1", "okr:okr"))
+  assert.equal(url.searchParams.get("scope"), "okr:okr")
 })
 
 test("拒绝空 scope、未知权限、通配符、逗号分隔及有效无效混合输入", () => {

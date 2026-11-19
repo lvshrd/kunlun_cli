@@ -8,6 +8,7 @@ import { docsRoutes } from "./commands/docs.ts"
 import { skillsRoutes } from "./commands/skills.ts"
 import { tableRoutes } from "./commands/tables.ts"
 import { docTableRoutes } from "./commands/doc-tables.ts"
+import { okrRoutes } from "./commands/okr.ts"
 import type { Route } from "./route.ts"
 import { CliError } from "../errors.ts"
 
@@ -20,6 +21,7 @@ export function allRoutes(): Route[] {
     ...docsRoutes(),
     ...docTableRoutes(),
     ...tableRoutes(),
+    ...okrRoutes(),
     ...skillsRoutes(),
     {
       path: ["version"],
